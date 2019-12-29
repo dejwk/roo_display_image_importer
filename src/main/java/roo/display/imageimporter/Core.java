@@ -13,10 +13,17 @@ import java.io.*;
 
 import hexwriter.HexWriter;
 import roo.display.encode.*;
+import roo.display.encode.alpha4.Alpha4EncoderFactory;
+import roo.display.encode.alpha8.Alpha8EncoderFactory;
+import roo.display.encode.argb4444.Argb4444EncoderFactory;
+import roo.display.encode.argb6666.Argb6666EncoderFactory;
+import roo.display.encode.argb8888.Argb8888EncoderFactory;
+import roo.display.encode.grayscale8.Grayscale8EncoderFactory;
+import roo.display.encode.monochrome.MonochromeEncoderFactory;
 import roo.display.imageimporter.ImportOptions.Compression;
 import roo.display.imageimporter.ImportOptions.Storage;
 
-import roo.display.encode.pixel.*;
+import roo.display.encode.rgb565.Rgb565EncoderFactory;
 
 import java.text.MessageFormat;
 
@@ -180,32 +187,34 @@ public class Core {
 
   private static Encoder createEncoder(ImportOptions options, OutputStream os) {
     boolean rle = options.getCompression() == Compression.RLE;
+    EncoderFactory factory;
     switch (options.getEncoding()) {
     case ARGB8888:
-      return rle ? new MultiByteRleEncoder(new Argb8888PixelEncoder(), os)
-        : new MultiByteRasterEncoder(new Argb8888PixelEncoder(), os);
+      factory = new Argb8888EncoderFactory();
+      break;
     case ARGB6666:
-      return rle ? new MultiByteRleEncoder(new Argb6666PixelEncoder(), os)
-        : new MultiByteRasterEncoder(new Argb6666PixelEncoder(), os);
+      factory = new Argb6666EncoderFactory();
+      break;
     case ARGB4444:
-      return rle ? new MultiByteRleEncoder(new Argb4444PixelEncoder(), os)
-        : new MultiByteRasterEncoder(new Argb4444PixelEncoder(), os);
+      factory = new Argb4444EncoderFactory();
+      break;
     case RGB565:
-      return new Rgb565TransparencyCapturer(rle ? new MultiByteRleEncoder(new Rgb565PixelEncoder(), os)
-        : new MultiByteRasterEncoder(new Rgb565PixelEncoder(), os));
-    // case RGB565_ALPHA4: return new Rgb565EncoderAlpha4(os, rle);
+      factory = new Rgb565EncoderFactory();
+      break;
     case GRAYSCALE8:
-      return rle ? new MultiByteRleEncoder(new Grayscale8PixelEncoder(), os)
-        : new MultiByteRasterEncoder(new Grayscale8PixelEncoder(), os);
+      factory = new Grayscale8EncoderFactory();
+      break;
     case ALPHA8:
-      return rle ? new MultiByteRleEncoder(new Alpha8PixelEncoder(), os)
-        : new MultiByteRasterEncoder(new Alpha8PixelEncoder(), os);
+      factory = new Alpha8EncoderFactory();
+      break;
     case ALPHA4:
-      return rle ? new Alpha4AntiAliasRleEncoder(os) : new PlainAlpha4Encoder(os);
+      factory = new Alpha4EncoderFactory();
+      break;
     case MONOCHROME:
-      return new MonochromeEncoder(os, 0xFF000000);
-    default:
-      return null;
+      factory = new MonochromeEncoderFactory();
+     default:
+      throw new IllegalArgumentException("Unsupported encoding: " + options.getEncoding());
     }
+    return factory.create(rle, os);
   }
 }

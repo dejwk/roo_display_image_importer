@@ -1,10 +1,11 @@
-package roo.display.encode;
+package roo.display.encode.rgb565alpha4;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
-import java.util.logging.Logger;
+import roo.display.encode.*;
+import roo.display.encode.alpha4.Alpha4AntiAliasRleEncoder;
+import roo.display.encode.alpha4.PlainAlpha4Encoder;
 
 public class Rgb565EncoderAlpha4 extends Encoder {
   private final Encoder colorEncoder;

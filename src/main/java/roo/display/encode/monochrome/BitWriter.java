@@ -1,9 +1,7 @@
-package roo.display.encode;
+package roo.display.encode.monochrome;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
-import java.util.logging.Logger;
 
 public class BitWriter {
   private OutputStream os;

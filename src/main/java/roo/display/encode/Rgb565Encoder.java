@@ -2,10 +2,6 @@ package roo.display.encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class Rgb565Encoder extends Encoder {
   private OutputStream os;

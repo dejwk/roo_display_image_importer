@@ -1,11 +1,11 @@
-package roo.display.encode;
+package roo.display.encode.rgb565;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
+import roo.display.encode.*;
 
 public class Rgb565TransparencyCapturer extends Encoder {
   List<Integer> buffer;

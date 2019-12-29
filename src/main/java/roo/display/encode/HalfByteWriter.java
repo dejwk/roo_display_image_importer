@@ -2,8 +2,6 @@ package roo.display.encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * Optimized for anti-aliased monochrome content with 4-bit alpha. Runs of
@@ -28,13 +26,13 @@ public class HalfByteWriter {
   boolean hasHalfByte;
   int buffer;
 
-  HalfByteWriter(OutputStream os) {
+  public HalfByteWriter(OutputStream os) {
       this.os = os;
       hasHalfByte = false;
       buffer = 0;
   }
 
-  void write(int halfByte) throws IOException {
+  public void write(int halfByte) throws IOException {
     if (halfByte < 0 || halfByte > 0xF) {
       throw new IllegalArgumentException();
     }
@@ -47,7 +45,7 @@ public class HalfByteWriter {
     }
   }
 
-  void close() throws IOException {
+  public void close() throws IOException {
     if (hasHalfByte) {
       os.write(buffer);
     }

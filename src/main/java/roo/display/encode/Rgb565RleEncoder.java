@@ -3,7 +3,6 @@ package roo.display.encode;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
-import java.util.logging.Logger;
 
 public class Rgb565RleEncoder extends Encoder {
   private OutputStream os;

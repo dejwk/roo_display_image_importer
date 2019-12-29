@@ -1,4 +1,4 @@
-package roo.display.encode.pixel;
+package roo.display.encode;
 
 public interface PixelEncoder {
   int bitsPerPixel();

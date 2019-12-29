@@ -1,4 +1,4 @@
-package roo.display.encode;
+package roo.display.encode.alpha4;
 
 import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.ByteArrayOutputStream;
 
 import org.junit.jupiter.api.Test;
+
+import roo.display.encode.Encoder;
 
 class Alpha4AntiAliasRleEncoderTest {
 
