@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 import java.util.logging.Logger;
+import roo.display.encode.pixel.*;
 
 public class MultiByteRleEncoder extends Encoder {
   private PixelEncoder pixelEncoder;

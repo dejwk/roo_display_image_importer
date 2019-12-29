@@ -16,6 +16,8 @@ import roo.display.encode.*;
 import roo.display.imageimporter.ImportOptions.Compression;
 import roo.display.imageimporter.ImportOptions.Storage;
 
+import roo.display.encode.pixel.*;
+
 import java.text.MessageFormat;
 
 public class Core {

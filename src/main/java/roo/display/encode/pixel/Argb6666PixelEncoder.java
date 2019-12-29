@@ -1,4 +1,4 @@
-package roo.display.encode;
+package roo.display.encode.pixel;
 
 public class Argb6666PixelEncoder implements PixelEncoder {
   public int bitsPerPixel() { return 24; }

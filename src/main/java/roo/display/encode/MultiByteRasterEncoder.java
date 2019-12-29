@@ -2,10 +2,7 @@ package roo.display.encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import roo.display.encode.pixel.*;
 
 public class MultiByteRasterEncoder extends Encoder {
   private PixelEncoder pixelEncoder;
