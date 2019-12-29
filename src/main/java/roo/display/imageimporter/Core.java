@@ -12,7 +12,7 @@ import java.io.FileOutputStream;
 import java.io.*;
 
 import hexwriter.HexWriter;
-import roo.display.encoder.*;
+import roo.display.encode.*;
 import roo.display.imageimporter.ImportOptions.Compression;
 import roo.display.imageimporter.ImportOptions.Storage;
 

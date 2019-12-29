@@ -1,10 +1,10 @@
-package roo.display.encoder;
+package roo.display.encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 
-import roo.display.encoder.RleAcummulator.Entry;
+import roo.display.encode.RleAcummulator.Entry;
 
 /**
  * Optimized for anti-aliased monochrome content with 4-bit alpha. Runs of

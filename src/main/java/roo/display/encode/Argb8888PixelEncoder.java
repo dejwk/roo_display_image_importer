@@ -1,4 +1,4 @@
-package roo.display.encoder;
+package roo.display.encode;
 
 public class Argb8888PixelEncoder implements PixelEncoder {
   public Argb8888PixelEncoder() {}

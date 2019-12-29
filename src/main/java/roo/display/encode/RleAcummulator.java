@@ -1,4 +1,4 @@
-package roo.display.encoder;
+package roo.display.encode;
 
 public class RleAcummulator {
   //public interface Consumer { void addRun(int value, int count); }

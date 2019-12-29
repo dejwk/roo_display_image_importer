@@ -1,4 +1,4 @@
-package roo.display.encoder;
+package roo.display.encode;
 
 public class Alpha8PixelEncoder implements PixelEncoder {
   public int bitsPerPixel() {

@@ -1,4 +1,4 @@
-package roo.display.encoder;
+package roo.display.encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
