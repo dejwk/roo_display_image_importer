@@ -48,10 +48,40 @@ public class Core {
   public Core() {
   }
 
+  private void writeHeaderPreamble(OutputStream headerStream, ImportOptions options) throws IOException {
+    Writer writer = new BufferedWriter(new OutputStreamWriter(headerStream));
+    writer.write("#include <Arduino.h>\n");
+    writer.write("#include \"roo_display/image/image.h\"\n");
+    if (options.getStorage() == Storage.SPIFFS) {
+      writer.write("#include \"roo_display/io/file.h\"\n");
+    }
+    writer.write("\n");
+    writer.flush();
+  }
+
+  private void writeCppPreamble(OutputStream cppStream, ImportOptions options) throws IOException {
+    Writer writer = new BufferedWriter(new OutputStreamWriter(cppStream));
+    writer.write("#include \"" + options.getName() + ".h\"\n");
+    if (options.getStorage() == Storage.SPIFFS) {
+      writer.write("#include \"SPIFFS.h\"\n");
+    }
+    writer.write("\n");
+    writer.write("using namespace roo_display;\n");
+    writer.write("\n");
+    writer.flush();
+  }
+
   public void execute(BufferedImage image, ImportOptions options) throws IOException {
     File headerFile = new File(options.getOutputHeaderDirectory(), options.getName() + ".h");
     File cppFile = new File(options.getOutputHeaderDirectory(), options.getName() + ".cpp");
     File dataFile = new File(options.getOutputPayloadDirectory(), options.getName() + ".img");
+
+    OutputStream headerStream = new FileOutputStream(headerFile);
+    OutputStream cppStream = new FileOutputStream(cppFile);
+
+    writeHeaderPreamble(headerStream, options);
+    writeCppPreamble(cppStream, options);
+
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     OutputStream os = new BufferedOutputStream(bos);
     Encoder encoder = createEncoder(options, os);
@@ -72,26 +102,14 @@ public class Core {
 
     String variable = options.getResourceName();
     String qualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.QUALIFIED);
-    Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(headerFile)));
-    writer.write("#include <Arduino.h>\n");
-    writer.write("#include \"roo_display/image/image.h\"\n");
-    if (options.getStorage() == Storage.SPIFFS) {
-      writer.write("#include \"roo_display/io/file.h\"\n");
-    }
-    writer.write("\n");
+    Writer writer = new BufferedWriter(new OutputStreamWriter(headerStream));
+
     writer.write("const " + qualified_typename + "& " + variable + "_streamable();\n");
     writer.write("const ::roo_display::Drawable& " + variable + "();\n");
     writer.close();
 
     String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
-    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cppFile)));
-    writer.write("#include \"" + options.getName() + ".h\"\n");
-    if (options.getStorage() == Storage.SPIFFS) {
-      writer.write("#include \"SPIFFS.h\"\n");
-    }
-    writer.write("\n");
-    writer.write("using namespace roo_display;\n");
-    writer.write("\n");
+    writer = new BufferedWriter(new OutputStreamWriter(cppStream));
     boolean rle = (options.getCompression() == Compression.RLE);
     if (options.getStorage() == Storage.SPIFFS) {
       writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
