@@ -38,20 +38,16 @@ public class ImageImporter extends JFrame {
     }
   }
 
-  @Command(
-      description = "Imports specified images to be used with the roo.display library",
-      name = "imageimporter",
-      mixinStandardHelpOptions = true, 
-      version = "1.0")
+  @Command(description = "Imports specified images to be used with the roo.display library", name = "imageimporter", mixinStandardHelpOptions = true, version = "1.0")
   private static class Main implements Callable<Void> {
     @Option(names = { "-e", "--encoding" }, description = "color encoding")
     Encoding encoding = Encoding.ARGB8888;
 
     @Option(names = { "-c", "--compression" }, description = "compression type")
-    Compression compression = Compression.RLE;
+    Compression compression = Compression.NONE;
 
     @Option(names = { "-s", "--storage" }, description = "where to store image data")
-    Storage storage = Storage.SPIFFS;
+    Storage storage = Storage.PROGMEM;
 
     @Option(names = { "--fg" }, description = "foreground color for monochrome and Alpha-only data")
     String fgColor;
@@ -59,19 +55,17 @@ public class ImageImporter extends JFrame {
     @Option(names = { "--bg" }, description = "background color for monochrome data")
     String bgColor;
 
-    @Option(names = { "--output-dir" }, 
-            description = "where to place resulting image files. Defaults to cwd.")
+    @Option(names = { "--output-dir" }, description = "where to place resulting image files. Defaults to cwd.")
     File outputDir;
 
-    @Option(names = { "--input-dir" }, 
-            description = "Where to look for input files. Defaults to cwd.")
+    @Option(names = { "--input-dir" }, description = "Where to look for input files. Defaults to cwd.")
     File inputDir;
 
-    @Option(names = { "--output-header-dir" }, 
+    @Option(names = { "--output-header-dir" },
             description = "where to place resulting header files. Defaults to output-dir")
     File outputHeaderDir;
 
-    @Option(names = { "--output-payload-dir" }, 
+    @Option(names = { "--output-payload-dir" },
             description = "where to place resulting SPIFFS data files. Defaults to output-dir")
     File outputPayloadDir;
 
@@ -82,16 +76,12 @@ public class ImageImporter extends JFrame {
     public Void call() throws Exception {
       if (inputFiles == null || inputFiles.length == 0) {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        ImageImporter importer = 
-            new ImageImporter(encoding, compression, storage, outputDir);
+        ImageImporter importer = new ImageImporter(encoding, compression, storage, outputDir);
         importer.init();
         importer.setVisible(true);
       } else {
-        ImportOptions options = (new ImportOptions())
-            .setEncoding(encoding)
-            .setStorage(storage)
-            .setComporession(compression)
-            .setOutputDirectory(outputDir);
+        ImportOptions options = (new ImportOptions()).setEncoding(encoding).setStorage(storage)
+            .setComporession(compression).setOutputDirectory(outputDir);
         if (bgColor != null) {
           options.setBgColor(bgColor);
         }
@@ -112,10 +102,9 @@ public class ImageImporter extends JFrame {
             throw new FileNotFoundException(absoluteInput.getAbsolutePath());
           }
           if (!absoluteInput.canRead()) {
-            throw new IOException("Canmot read " + absoluteInput.getAbsolutePath());     
+            throw new IOException("Cannot read " + absoluteInput.getAbsolutePath());
           }
-          String name = ImportOptions.getRecommendedNameFromInputFilename(
-              absoluteInput.getName());
+          String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
           options.setName(name);
 
           BufferedImage image = ImageIO.read(absoluteInput);
@@ -123,15 +112,11 @@ public class ImageImporter extends JFrame {
         }
       }
       return null;
-    }    
+    }
   }
 
-  public ImageImporter(
-      Encoding encoding,
-      Compression compression,
-      Storage storage,
-      File currentDirectory) {
-    super("Esp-Display Image Importer");
+  public ImageImporter(Encoding encoding, Compression compression, Storage storage, File currentDirectory) {
+    super("roo_display Image Importer");
     this.encoding = encoding;
     this.compression = compression;
     this.storage = storage;
@@ -150,10 +135,11 @@ public class ImageImporter extends JFrame {
     Container pane = getContentPane();
     pane.setLayout(new BorderLayout()); // 10, 10));
 
-    JPanel imgPanel = new JPanel();
-    pane.add(imgPanel, BorderLayout.CENTER);
+    // JPanel imgPanel = new JPanel();
+    // pane.add(imgPanel, BorderLayout.CENTER);
     imageLabel = new JLabel();
-    imgPanel.add(imageLabel);
+    // imgPanel.add(imageLabel);
+    pane.add(imageLabel, BorderLayout.CENTER);
 
     pack();
     setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -161,12 +147,11 @@ public class ImageImporter extends JFrame {
 
   private class EncodingOption extends AbstractAction {
     private Encoding encoding;
+
     public EncodingOption(Encoding encoding) {
       super(encoding.description);
       this.encoding = encoding;
-      putValue(
-          AbstractAction.SELECTED_KEY, 
-          encoding == ImageImporter.this.encoding);
+      putValue(AbstractAction.SELECTED_KEY, encoding == ImageImporter.this.encoding);
     }
 
     @Override
@@ -190,7 +175,7 @@ public class ImageImporter extends JFrame {
 
     sMenuItem = new JMenuItem("Save");
     sMenuItem.setMnemonic(KeyEvent.VK_S);
-    sMenuItem.setToolTipText("Save image file for Esp-Display");
+    sMenuItem.setToolTipText("Save image file for roo_display");
     sMenuItem.addActionListener((ActionEvent event) -> {
       saveImage();
     });
@@ -216,38 +201,28 @@ public class ImageImporter extends JFrame {
     file.setMnemonic(KeyEvent.VK_R);
 
     ButtonGroup group = new ButtonGroup();
-    group.add(new JRadioButtonMenuItem(
-        new EncodingOption(Encoding.ARGB8888)));
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.ARGB8888)));
 
-    group.add(new JRadioButtonMenuItem(
-      new EncodingOption(Encoding.ARGB6666)));
-  
-    group.add(new JRadioButtonMenuItem(
-      new EncodingOption(Encoding.ARGB4444)));
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.ARGB6666)));
 
-    group.add(new JRadioButtonMenuItem(
-      new EncodingOption(Encoding.RGB565)));
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.ARGB4444)));
+
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.RGB565)));
 
     // group.add(new JRadioButtonMenuItem(
-    //   new EncodingOption(Encoding.RGB565_ALPHA4)));
+    // new EncodingOption(Encoding.RGB565_ALPHA4)));
 
-    group.add(new JRadioButtonMenuItem(
-      new EncodingOption(Encoding.GRAYSCALE8)));
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.GRAYSCALE8)));
 
-    group.add(new JRadioButtonMenuItem(
-      new EncodingOption(Encoding.GRAYSCALE4)));
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.GRAYSCALE4)));
 
-    group.add(new JRadioButtonMenuItem(
-      new EncodingOption(Encoding.ALPHA8)));
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.ALPHA8)));
 
-    group.add(new JRadioButtonMenuItem(
-      new EncodingOption(Encoding.ALPHA4)));
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.ALPHA4)));
 
-    group.add(new JRadioButtonMenuItem(
-      new EncodingOption(Encoding.MONOCHROME)));
-  
-    for (Enumeration<AbstractButton> options = group.getElements();
-         options.hasMoreElements();) {
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.MONOCHROME)));
+
+    for (Enumeration<AbstractButton> options = group.getElements(); options.hasMoreElements();) {
       format.add(options.nextElement());
     }
 
@@ -258,8 +233,14 @@ public class ImageImporter extends JFrame {
       compression = rle.isSelected() ? Compression.RLE : Compression.NONE;
     });
     rle.setSelected(compression == Compression.RLE);
-
     format.add(rle);
+
+    JMenuItem spiffs = new JCheckBoxMenuItem("SPIFFS storage");
+    spiffs.addActionListener((ActionEventEvent) -> {
+      storage = spiffs.isSelected() ? Storage.SPIFFS : Storage.PROGMEM;
+    });
+    spiffs.setSelected(storage == Storage.SPIFFS);
+    format.add(spiffs);
 
     menubar.add(format);
   }
@@ -275,7 +256,7 @@ public class ImageImporter extends JFrame {
       inputFile = file;
       if (currentDirectory == null) {
         currentDirectory = file.getParentFile();
-      } 
+      }
       try {
         image = ImageIO.read(file);
         imageLabel.setIcon(new ImageIcon(image));
@@ -304,10 +285,7 @@ public class ImageImporter extends JFrame {
     }
 
     Core core = new Core();
-    ImportOptions options = new ImportOptions()
-        .initFromInput(inputFile)
-        .setStorage(storage)
-        .setEncoding(encoding)
+    ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
         .setComporession(compression);
 
     try {
@@ -327,10 +305,7 @@ public class ImageImporter extends JFrame {
     }
 
     Core core = new Core();
-    ImportOptions options = new ImportOptions()
-        .initFromInput(inputFile)
-        .setStorage(storage)
-        .setEncoding(encoding)
+    ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
         .setComporession(compression);
 
     try {

@@ -38,7 +38,8 @@ public class Alpha4AntiAliasRleEncoder extends Encoder {
   }
 
   public void encodePixel(int pixel) throws IOException {
-    int alpha = (pixel >> 28) & 0xF;
+    int trunc = (pixel >> 24) & 0xFF;
+    int alpha = (trunc - (trunc >> 5)) >> 4;
     Entry entry = acummulator.add(alpha);
     if (entry != null) {
       // Deque has a new run.

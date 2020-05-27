@@ -33,7 +33,7 @@ public class ImportOptions {
 
   public enum Compression {
     NONE("Non-compressed raster"),
-    RLE("Default run-length encoding");
+    RLE("Run-length encoded");
 
     public final String description;
 
@@ -54,7 +54,7 @@ public class ImportOptions {
   public ImportOptions() {
     storage = Storage.PROGMEM;
     encoding = Encoding.RGB565;
-    compression = Compression.RLE;
+    compression = Compression.NONE;
   }
 
   public Storage getStorage() { return storage; }

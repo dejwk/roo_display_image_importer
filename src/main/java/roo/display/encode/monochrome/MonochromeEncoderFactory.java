@@ -11,6 +11,6 @@ public class MonochromeEncoderFactory implements EncoderFactory {
     if (rle) {
       throw new IllegalArgumentException("Monochrome encoder doesn't support RLE");
     }
-    return new MonochromeEncoder(os, 0xFF000000);
+    return new MonochromeEncoder(os);
   }
 }

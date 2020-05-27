@@ -11,18 +11,12 @@ public class Rgb565TransparencyCapturer extends Encoder {
   List<Integer> buffer;
   int[] freq;
   boolean hasTransparency;
-  Map<String, String> properties;
   Encoder delegate;
 
   public Rgb565TransparencyCapturer(Encoder delegate) { 
     this.delegate = delegate;
     this.buffer = new ArrayList<Integer>();
     this.freq = new int[1 << 16];
-    this.properties = new HashMap<String, String>();
-  }
-
-  public String getProperty(String key) {
-      return properties.get(key);
   }
 
   public void encodePixel(int pixel) throws IOException {
@@ -89,5 +83,4 @@ public class Rgb565TransparencyCapturer extends Encoder {
     int b = ((encoded << 3) & 0xF8) | ((encoded >> 2) & 0x07);
     return 0xFF000000 | r << 16 | g << 8 | b;
   }
-
 }

@@ -13,7 +13,8 @@ public abstract class PayloadWriter {
 
   public void writeDeclaration(String var) throws IOException {}
 
-  public void begin(String tableName) throws IOException {}
+  public void beginStatic(String tableName) throws IOException {}
+  public void beginExtern(String tableName) throws IOException {}
 
   public void printComment(String comment) throws IOException {}
 

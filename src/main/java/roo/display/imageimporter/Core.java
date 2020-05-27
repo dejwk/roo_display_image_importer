@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 import java.io.*;
+import java.util.Properties;
 
 import hexwriter.HexWriter;
 import roo.display.encode.*;
@@ -18,6 +19,7 @@ import roo.display.encode.alpha8.Alpha8EncoderFactory;
 import roo.display.encode.argb4444.Argb4444EncoderFactory;
 import roo.display.encode.argb6666.Argb6666EncoderFactory;
 import roo.display.encode.argb8888.Argb8888EncoderFactory;
+import roo.display.encode.grayscale4.Grayscale4EncoderFactory;
 import roo.display.encode.grayscale8.Grayscale8EncoderFactory;
 import roo.display.encode.monochrome.MonochromeEncoderFactory;
 import roo.display.imageimporter.ImportOptions.Compression;
@@ -84,7 +86,9 @@ public class Core {
     String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
     writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cppFile)));
     writer.write("#include \"" + options.getName() + ".h\"\n");
-    writer.write("#include \"SPIFFS.h\"\n");
+    if (options.getStorage() == Storage.SPIFFS) {
+      writer.write("#include \"SPIFFS.h\"\n");
+    }
     writer.write("\n");
     writer.write("using namespace roo_display;\n");
     writer.write("\n");
@@ -93,24 +97,26 @@ public class Core {
       writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
       writer.write("  static FileResource file(SPIFFS, \"/" + dataFile.getName() + "\");\n");
       writer.write("  static " + unqualified_typename + " value(\n      " + image.getWidth() + ", " + image.getHeight()
-          + ", file, " + getCppEncodingConstructor(options, encoder.getProperty("transparentColor")) + ");\n");
+          + ", file, " + getCppEncodingConstructor(options, encoder.getProperties()) + ");\n");
       writer.write("  return value;\n");
       writer.write("}\n");
     } else {
       HexWriter hexWriter = new HexWriter(writer);
-      hexWriter.writeDeclaration(variable + "_data");
-      writer.write("\n\n");
+
+      hexWriter.printComment("Image file " + options.getName() + " " + image.getWidth() + "x" + image.getHeight() + ", "
+          + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + bos.size() + " bytes \n");
+      hexWriter.beginStatic(variable + "_data");
+      hexWriter.printBuffer(bos.toByteArray());
+      hexWriter.end();
+
+      // hexWriter.writeDeclaration(variable + "_data");
+      writer.write("\n");
       writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
       writer.write("  static " + unqualified_typename + " value(\n      " + image.getWidth() + ", " + image.getHeight()
           + ", " + variable + "_data" + ", "
-          + getCppEncodingConstructor(options, encoder.getProperty("transparentColor")) + ");\n");
+          + getCppEncodingConstructor(options, encoder.getProperties()) + ");\n");
       writer.write("  return value;\n");
-      writer.write("}\n\n");
-      hexWriter.printComment("Image file " + options.getName() + " " + image.getWidth() + "x" + image.getHeight() + ", "
-          + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + bos.size() + " bytes \n");
-      hexWriter.begin(variable + "_data");
-      hexWriter.printBuffer(bos.toByteArray());
-      hexWriter.end();
+      writer.write("}\n");
     }
     writer.write("\n");
     writer.write("const Drawable& " + variable + "() {\n");
@@ -127,27 +133,28 @@ public class Core {
 
   private static String getCppImageTypeNameFormatForEncoding(ImportOptions options) {
     boolean rle = (options.getCompression() == Compression.RLE);
+    boolean prgmem = (options.getStorage() == Storage.PROGMEM);
     switch (options.getEncoding()) {
     case ARGB8888:
-      return rle ? "{1}RleImage<{1}Argb8888, {0}>" : "{1}Raster<{0}, {1}Argb8888>";
+      return rle ? "{1}RleImage<{1}Argb8888, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb8888>" : "{1}SimpleImage<{0}, {1}Argb8888>";
     case ARGB6666:
-      return rle ? "{1}RleImage<{1}Argb6666, {0}>" : "{1}Raster<{0}, {1}Argb6666>";
+      return rle ? "{1}RleImage<{1}Argb6666, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb6666>" : "{1}SimpleImage<{0}, {1}Argb6666>";
     case ARGB4444:
-      return rle ? "{1}RleImage<{1}Argb4444, {0}>" : "{1}Raster<{0}, {1}Argb4444>";
+      return rle ? "{1}RleImage<{1}Argb4444, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb4444>" : "{1}SimpleImage<{0}, {1}Argb4444>";
     case RGB565:
-      return rle ? "{1}RleImage<{1}Rgb565, {0}>" : "{1}Raster<{0}, {1}Rgb565>";
+      return rle ? "{1}RleImage<{1}Rgb565, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Rgb565>" : "{1}SimpleImage<{0}, {1}Rgb565>";
     // case RGB565_ALPHA4: return "{1}Rgb565Alpha4RleImage<{0}>";
     case GRAYSCALE8:
-      return rle ? "{1}RleImage<{1}Grayscale8, {0}>" : "{1}Raster<{0}, {1}Grayscale8>";
+      return rle ? "{1}RleImage<{1}Grayscale8, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale8>" : "{1}SimpleImage<{0}, {1}Grayscale8>";
     // return rle ? "{1}ImageRle4bppxPolarized<{1}Alpha4, {0}>" : "{1}Raster<{0}, {1}Alpha4>";
     case ALPHA8:
-      return rle ? "{1}RleImage<{1}Alpha8, {0}>" : "{1}Raster<{0}, {1}Alpha8>";
+      return rle ? "{1}RleImage<{1}Alpha8, {0}>" : prgmem ? "{1}Raster<{0}, {1}Alpha8>" : "{1}SimpleImage<{0}, {1}Alpha8>";
     case GRAYSCALE4:
-      return rle ? "{1}RleImage4bppxPolarized<{1}Grayscale4, {0}>" : "{1}Raster<{0}, {1}Grayscale4>";
+      return rle ? "{1}RleImage4bppxPolarized<{1}Grayscale4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale4>" : "{1}SimpleImage<{0}, {1}Grayscale4>";
     case ALPHA4:
-      return rle ? "{1}RleImage4bppxPolarized<{1}Alpha4, {0}>" : "{1}Raster<{0}, {1}Alpha4>";
+      return rle ? "{1}RleImage4bppxPolarized<{1}Alpha4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Alpha4>" : "{1}SimpleImage<{0}, {1}Alpha4>";
     case MONOCHROME:
-      return "{1}Raster<{0}, {1}Monochrome>";
+      return prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Monochrome>" : "{1}SimpleImage<{0}, {1}Monochrome>";
     default:
       return null;
     }
@@ -159,7 +166,7 @@ public class Core {
   // scoping.scope());
   // }
 
-  private static String getCppEncodingConstructor(ImportOptions options, String transparent565Color) {
+  private static String getCppEncodingConstructor(ImportOptions options, Properties encoderProperties) {
     switch (options.getEncoding()) {
     case ARGB8888:
       return "Argb8888()";
@@ -168,7 +175,8 @@ public class Core {
     case ARGB4444:
       return "Argb4444()";
     case RGB565:
-      return "Rgb565(" + (transparent565Color == null ? "" : transparent565Color) + ")";
+      String t = encoderProperties.getProperty("transparentColor");
+      return "Rgb565(" + (t == null ? "" : t) + ")";
     // case RGB565_ALPHA4: return "Argb8888()";
     case GRAYSCALE8:
       return "Grayscale8()";
@@ -179,7 +187,9 @@ public class Core {
     case ALPHA4:
       return "Alpha4(" + options.getFgColor() + ")";
     case MONOCHROME:
-      return "Monochrome(" + options.getFgColor() + ", " + options.getBgColor() + ")";
+      String bg = encoderProperties.getProperty("bgColor");
+      String fg = encoderProperties.getProperty("fgColor");
+      return "Monochrome(" + fg + ", " + bg + ")";
     default:
       return null;
     }
@@ -201,6 +211,9 @@ public class Core {
     case RGB565:
       factory = new Rgb565EncoderFactory();
       break;
+    case GRAYSCALE4:
+      factory = new Grayscale4EncoderFactory();
+      break;
     case GRAYSCALE8:
       factory = new Grayscale8EncoderFactory();
       break;
@@ -212,6 +225,7 @@ public class Core {
       break;
     case MONOCHROME:
       factory = new MonochromeEncoderFactory();
+      break;
      default:
       throw new IllegalArgumentException("Unsupported encoding: " + options.getEncoding());
     }
