@@ -75,9 +75,10 @@ public class Core {
     if (options.getStorage() == Storage.SPIFFS) {
       writer.write("#include \"SPIFFS.h\"\n");
     }
-    writer.write("\n");
-    writer.write("using namespace roo_display;\n");
-    writer.write("\n");
+    writer.write(
+      "\n" +
+      "using namespace roo_display;\n" +
+      "\n");
     writer.flush();
   }
 
@@ -89,12 +90,21 @@ public class Core {
     String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
     boolean rle = (options.getCompression() == Compression.RLE);
     if (options.getStorage() == Storage.SPIFFS) {
-      writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
-      writer.write("  static FileResource file(SPIFFS, \"/" + dataFileName + "\");\n");
-      writer.write("  static " + unqualified_typename + " value(\n      " + image.getWidth() + ", " + image.getHeight()
-          + ", file, " + getCppEncodingConstructor(options, encoderProperties) + ");\n");
-      writer.write("  return value;\n");
-      writer.write("}\n");
+      String template =
+        "const {TYPE}& {VAR}_streamable() {\n" +
+        "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" +
+        "  static {TYPE} value(\n" +
+        "      {WIDTH}, {HEIGHT}, file, {CONSTRUCTOR});\n" +
+        "  return value;\n" +
+        "}\n";
+
+      writer.write(template
+        .replace("{TYPE}", unqualified_typename)
+        .replace("{VAR}", variable)
+        .replace("{DATAFILE}", dataFileName)
+        .replace("{WIDTH}", String.valueOf(image.getWidth()))
+        .replace("{HEIGHT}", String.valueOf(image.getHeight()))
+        .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
     } else {
       HexWriter hexWriter = new HexWriter(writer);
       hexWriter.printComment("Image file " + options.getName() + " " + image.getWidth() + "x" + image.getHeight() + ", "
@@ -103,21 +113,30 @@ public class Core {
       hexWriter.printBuffer(encoded);
       hexWriter.end();
 
-      // hexWriter.writeDeclaration(variable + "_data");
-      writer.write("\n");
-      writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
-      writer.write("  static " + unqualified_typename + " value(\n      " + image.getWidth() + ", " + image.getHeight()
-          + ", " + variable + "_data" + ", "
-          + getCppEncodingConstructor(options, encoderProperties) + ");\n");
-      writer.write("  return value;\n");
-      writer.write("}\n");
-    }
-    writer.write("\n");
-    writer.write("const Drawable& " + variable + "() {\n");
-    writer.write("  static auto drawable = MakeDrawableStreamable(" + variable + "_streamable());\n");
-    writer.write("  return drawable;\n");
-    writer.write("}\n");
+      String template =
+        "\n" +
+        "const {TYPE}& {VAR}_streamable() {\n" +
+        "  static {TYPE} value(\n" +
+        "      {WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR});\n" +
+        "  return value;\n" +
+        "}\n";
 
+      writer.write(template
+          .replace("{TYPE}", unqualified_typename)
+          .replace("{VAR}", variable)
+          .replace("{WIDTH}", String.valueOf(image.getWidth()))
+          .replace("{HEIGHT}", String.valueOf(image.getHeight()))
+          .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
+    }
+
+    String template =
+      "\n" +
+      "const Drawable& {VAR}() {\n" +
+      "  static auto drawable = MakeDrawableStreamable({VAR}_streamable());\n" +
+      "  return drawable;\n" +
+      "}\n";
+
+    writer.write(template.replace("{VAR}", variable));
     writer.flush();
   }
 
