@@ -135,7 +135,7 @@ public class ImportOptions {
     return name;
   }
 
-  private static String getResourceNameFromName(String name) {
+  public static String getResourceNameFromName(String name) {
     return name.replace(".", "_").replace("-", "_").replace(" ", "_");
   }
 }

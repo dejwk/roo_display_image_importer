@@ -48,132 +48,148 @@ public class Core {
   public Core() {
   }
 
-  private void writeHeaderPreamble(OutputStream headerStream, ImportOptions options) throws IOException {
-    Writer writer = new BufferedWriter(new OutputStreamWriter(headerStream));
-    writer.write("#include <Arduino.h>\n");
-    writer.write("#include \"roo_display/image/image.h\"\n");
-    if (options.getStorage() == Storage.SPIFFS) {
-      writer.write("#include \"roo_display/io/file.h\"\n");
+  static class FileWriter {
+    private OutputStream headerFileStream;
+    private OutputStream cppFileStream;
+
+    private ImportOptions options;
+
+    public FileWriter(ImportOptions options, String name) throws IOException {
+      this.options = options;
+      File headerFile = new File(options.getOutputHeaderDirectory(), options.getName() + ".h");
+      File cppFile = new File(options.getOutputHeaderDirectory(), options.getName() + ".cpp");
+
+      this.headerFileStream = new FileOutputStream(headerFile);
+      this.cppFileStream = new FileOutputStream(cppFile);
+
+      writeHeaderPreamble();
+      writeCppPreamble();
     }
-    writer.write("\n");
-    writer.flush();
-  }
 
-  private void writeHeaderDeclaration(OutputStream headerStream, ImportOptions options) throws IOException {
-    Writer writer = new BufferedWriter(new OutputStreamWriter(headerStream));
-    String variable = options.getResourceName();
-    String qualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.QUALIFIED);
-
-    writer.write("const " + qualified_typename + "& " + variable + "_streamable();\n");
-    writer.write("const ::roo_display::Drawable& " + variable + "();\n");
-    writer.flush();
-  }
-
-  private void writeCppPreamble(OutputStream cppStream, ImportOptions options) throws IOException {
-    Writer writer = new BufferedWriter(new OutputStreamWriter(cppStream));
-    writer.write("#include \"" + options.getName() + ".h\"\n");
-    if (options.getStorage() == Storage.SPIFFS) {
-      writer.write("#include \"SPIFFS.h\"\n");
+    public void close() throws IOException {
+      headerFileStream.close();
+      cppFileStream.close();
     }
-    writer.write(
-      "\n" +
-      "using namespace roo_display;\n" +
-      "\n");
-    writer.flush();
-  }
 
-  private void writeCppDefinition(OutputStream cppStream, ImportOptions options, String dataFileName, 
-                                  BufferedImage image, Properties encoderProperties,
-                                  byte[] encoded) throws IOException {
-    Writer writer = new BufferedWriter(new OutputStreamWriter(cppStream));
-    String variable = options.getResourceName();
-    String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
-    boolean rle = (options.getCompression() == Compression.RLE);
-    if (options.getStorage() == Storage.SPIFFS) {
-      String template =
-        "const {TYPE}& {VAR}_streamable() {\n" +
-        "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" +
-        "  static {TYPE} value(\n" +
-        "      {WIDTH}, {HEIGHT}, file, {CONSTRUCTOR});\n" +
-        "  return value;\n" +
-        "}\n";
+    private void writeHeaderPreamble() throws IOException {
+      Writer writer = new BufferedWriter(new OutputStreamWriter(headerFileStream));
+      writer.write("#include <Arduino.h>\n");
+      writer.write("#include \"roo_display/image/image.h\"\n");
+      if (options.getStorage() == Storage.SPIFFS) {
+        writer.write("#include \"roo_display/io/file.h\"\n");
+      }
+      writer.write("\n");
+      writer.flush();
+    }
 
-      writer.write(template
-        .replace("{TYPE}", unqualified_typename)
-        .replace("{VAR}", variable)
-        .replace("{DATAFILE}", dataFileName)
-        .replace("{WIDTH}", String.valueOf(image.getWidth()))
-        .replace("{HEIGHT}", String.valueOf(image.getHeight()))
-        .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
-    } else {
-      HexWriter hexWriter = new HexWriter(writer);
-      hexWriter.printComment("Image file " + options.getName() + " " + image.getWidth() + "x" + image.getHeight() + ", "
-          + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + encoded.length + " bytes \n");
-      hexWriter.beginStatic(variable + "_data");
-      hexWriter.printBuffer(encoded);
-      hexWriter.end();
-
-      String template =
+    private void writeCppPreamble() throws IOException {
+      Writer writer = new BufferedWriter(new OutputStreamWriter(cppFileStream));
+      writer.write("#include \"" + options.getName() + ".h\"\n");
+      if (options.getStorage() == Storage.SPIFFS) {
+        writer.write("#include \"SPIFFS.h\"\n");
+      }
+      writer.write(
         "\n" +
-        "const {TYPE}& {VAR}_streamable() {\n" +
-        "  static {TYPE} value(\n" +
-        "      {WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR});\n" +
-        "  return value;\n" +
-        "}\n";
+        "using namespace roo_display;\n" +
+        "\n");
+      writer.flush();
+    }
 
-      writer.write(template
+    public void write(String resourceName, BufferedImage image) throws IOException {
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+      OutputStream os = new BufferedOutputStream(bos);
+      Encoder encoder = createEncoder(options, os);
+      for (int i = 0; i < image.getHeight(); ++i) {
+        for (int j = 0; j < image.getWidth(); ++j) {
+          int rgb = image.getRGB(j, i);
+          encoder.encodePixel(rgb);
+        }
+      }
+      encoder.close();
+      os.close();
+
+      File dataFile = new File(options.getOutputPayloadDirectory(), resourceName + ".img");
+      if (options.getStorage() == Storage.SPIFFS) {
+        OutputStream payloadStream = new FileOutputStream(dataFile);
+        bos.writeTo(payloadStream);
+        payloadStream.close();
+      }
+
+      writeHeaderDeclaration(resourceName);
+
+      writeCppDefinition(resourceName, dataFile.getName(), image, encoder.getProperties(), bos.toByteArray());
+    }
+
+    private void writeHeaderDeclaration(String resourceName) throws IOException {
+      Writer writer = new BufferedWriter(new OutputStreamWriter(headerFileStream));
+      String qualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.QUALIFIED);
+
+      writer.write("const " + qualified_typename + "& " + resourceName + "_streamable();\n");
+      writer.write("const ::roo_display::Drawable& " + resourceName + "();\n");
+      writer.flush();
+    }
+
+    private void writeCppDefinition(String resourceName, String dataFileName, BufferedImage image,
+                                    Properties encoderProperties, byte[] encoded) throws IOException {
+      Writer writer = new BufferedWriter(new OutputStreamWriter(cppFileStream));
+      String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
+      boolean rle = (options.getCompression() == Compression.RLE);
+      if (options.getStorage() == Storage.SPIFFS) {
+        String template =
+          "const {TYPE}& {VAR}_streamable() {\n" +
+          "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" +
+          "  static {TYPE} value(\n" +
+          "      {WIDTH}, {HEIGHT}, file, {CONSTRUCTOR});\n" +
+          "  return value;\n" +
+          "}\n";
+
+        writer.write(template
           .replace("{TYPE}", unqualified_typename)
-          .replace("{VAR}", variable)
+          .replace("{VAR}", resourceName)
+          .replace("{DATAFILE}", dataFileName)
           .replace("{WIDTH}", String.valueOf(image.getWidth()))
           .replace("{HEIGHT}", String.valueOf(image.getHeight()))
           .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
+      } else {
+        HexWriter hexWriter = new HexWriter(writer);
+        hexWriter.printComment("Image file " + options.getName() + " " + image.getWidth() + "x" + image.getHeight() + ", "
+            + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + encoded.length + " bytes \n");
+        hexWriter.beginStatic(resourceName + "_data");
+        hexWriter.printBuffer(encoded);
+        hexWriter.end();
+
+        String template =
+          "\n" +
+          "const {TYPE}& {VAR}_streamable() {\n" +
+          "  static {TYPE} value(\n" +
+          "      {WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR});\n" +
+          "  return value;\n" +
+          "}\n";
+
+        writer.write(template
+            .replace("{TYPE}", unqualified_typename)
+            .replace("{VAR}", resourceName)
+            .replace("{WIDTH}", String.valueOf(image.getWidth()))
+            .replace("{HEIGHT}", String.valueOf(image.getHeight()))
+            .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
+      }
+
+      String template =
+        "\n" +
+        "const Drawable& {VAR}() {\n" +
+        "  static auto drawable = MakeDrawableStreamable({VAR}_streamable());\n" +
+        "  return drawable;\n" +
+        "}\n";
+
+      writer.write(template.replace("{VAR}", resourceName));
+      writer.flush();
     }
-
-    String template =
-      "\n" +
-      "const Drawable& {VAR}() {\n" +
-      "  static auto drawable = MakeDrawableStreamable({VAR}_streamable());\n" +
-      "  return drawable;\n" +
-      "}\n";
-
-    writer.write(template.replace("{VAR}", variable));
-    writer.flush();
   }
 
   public void execute(BufferedImage image, ImportOptions options) throws IOException {
-    File headerFile = new File(options.getOutputHeaderDirectory(), options.getName() + ".h");
-    File cppFile = new File(options.getOutputHeaderDirectory(), options.getName() + ".cpp");
-    File dataFile = new File(options.getOutputPayloadDirectory(), options.getName() + ".img");
-
-    OutputStream headerStream = new FileOutputStream(headerFile);
-    OutputStream cppStream = new FileOutputStream(cppFile);
-
-    writeHeaderPreamble(headerStream, options);
-    writeCppPreamble(cppStream, options);
-
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    OutputStream os = new BufferedOutputStream(bos);
-    Encoder encoder = createEncoder(options, os);
-    for (int i = 0; i < image.getHeight(); ++i) {
-      for (int j = 0; j < image.getWidth(); ++j) {
-        int rgb = image.getRGB(j, i);
-        encoder.encodePixel(rgb);
-      }
-    }
-    encoder.close();
-    os.close();
-
-    if (options.getStorage() == Storage.SPIFFS) {
-      OutputStream payloadStream = new FileOutputStream(dataFile);
-      bos.writeTo(payloadStream);
-      payloadStream.close();
-    }
-
-    writeHeaderDeclaration(headerStream, options);
-    headerStream.close();
-
-    writeCppDefinition(cppStream, options, dataFile.getName(), image, encoder.getProperties(), bos.toByteArray());
-    cppStream.close();
+    FileWriter w = new FileWriter(options, options.getName());
+    w.write(options.getName(), image);
+    w.close();
   }
 
   private static String getCppImageTypeNameForEncoding(ImportOptions options, TypeScoping scoping) {
