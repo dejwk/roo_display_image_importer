@@ -14,17 +14,6 @@ public class BitWriter {
       buffer = 0;
   }
 
-  // void write(boolean bit) throws IOException {
-  //   buffer >>= 1;
-  //   buffer |= (bit ? 0x80 : 0);
-  //   bitIndex++;
-  //   if (bitIndex == 8) {
-  //     os.write(buffer);
-  //     bitIndex = 0;
-  //   }
-  // }
-
-
   void write(boolean bit) throws IOException {
     buffer <<= 1;
     buffer |= (bit ? 0x1 : 0);
