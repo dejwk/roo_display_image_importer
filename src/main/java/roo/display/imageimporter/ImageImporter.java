@@ -58,6 +58,11 @@ public class ImageImporter extends JFrame {
     @Option(names = { "--output-dir" }, description = "where to place resulting image files. Defaults to cwd.")
     File outputDir;
 
+    @Option(names = { "--output-name" },
+            description = "if set, all images will be generated in a single file by that name. " +
+                          "Otherwise, each image goes to a separate file.")
+    String outputName;
+
     @Option(names = { "--input-dir" }, description = "Where to look for input files. Defaults to cwd.")
     File inputDir;
 
@@ -94,25 +99,46 @@ public class ImageImporter extends JFrame {
         if (outputPayloadDir != null) {
           options.setOutputPayloadDirectory(outputPayloadDir);
         }
-        Core core = new Core();
-        for (File input : inputFiles) {
-          File absoluteInput = input.isAbsolute() ? input : new File(inputDir, input.getPath());
-          Logger.getGlobal().info("Loading file: " + absoluteInput.getAbsolutePath());
-          if (!absoluteInput.exists()) {
-            throw new FileNotFoundException(absoluteInput.getAbsolutePath());
-          }
-          if (!absoluteInput.canRead()) {
-            throw new IOException("Cannot read " + absoluteInput.getAbsolutePath());
-          }
-          String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-          options.setName(name);
 
-          BufferedImage image = ImageIO.read(absoluteInput);
-          core.execute(image, options);
+        //Core core = new Core();
+        if (outputName == null) {
+          for (File input : inputFiles) {
+            File absoluteInput = openFile(inputDir, input);
+            String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
+            //options.setName(name);
+            BufferedImage image = ImageIO.read(absoluteInput);
+            Core.FileWriter writer = new Core.FileWriter(options, name);
+            writer.write(name, image);
+            writer.close();
+          }
+        } else {
+          Core.FileWriter writer = new Core.FileWriter(options, outputName);
+          for (File input : inputFiles) {
+            File absoluteInput = openFile(inputDir, input);
+            String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
+            //options.setName(name);
+            BufferedImage image = ImageIO.read(absoluteInput);
+            writer.write(name, image);
+            writer.close();
+          }
+
         }
       }
       return null;
     }
+  }
+
+  // Helper.
+  private static File openFile(File inputDir, File input) throws IOException {
+    File absoluteInput = input.isAbsolute() ? input : new File(inputDir, input.getPath());
+    Logger.getGlobal().info("Loading file: " + absoluteInput.getAbsolutePath());
+    if (!absoluteInput.exists()) {
+      throw new FileNotFoundException(absoluteInput.getAbsolutePath());
+    }
+    if (!absoluteInput.canRead()) {
+      throw new IOException("Cannot read " + absoluteInput.getAbsolutePath());
+    }
+    return absoluteInput;
   }
 
   public ImageImporter(Encoding encoding, Compression compression, Storage storage, File currentDirectory) {
@@ -284,34 +310,39 @@ public class ImageImporter extends JFrame {
       return;
     }
 
-    Core core = new Core();
+    //Core core = new Core();
     ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
         .setComporession(compression);
+    String name = ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
 
     try {
-      core.execute(image, options);
+      Core.FileWriter w = new Core.FileWriter(options, name);
+      w.write(name, image);
+      w.close();
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());
     }
   }
 
-  private void saveImageIn(String directory) throws IOException {
-    JFileChooser fc = new JFileChooser(currentDirectory);
-    fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    fc.setSelectedFile(currentDirectory);
-    int returnVal = fc.showSaveDialog(this);
-    if (returnVal != JFileChooser.APPROVE_OPTION) {
-      return;
-    }
+  // private void saveImageIn(String directory) throws IOException {
+  //   JFileChooser fc = new JFileChooser(currentDirectory);
+  //   fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+  //   fc.setSelectedFile(currentDirectory);
+  //   int returnVal = fc.showSaveDialog(this);
+  //   if (returnVal != JFileChooser.APPROVE_OPTION) {
+  //     return;
+  //   }
 
-    Core core = new Core();
-    ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
-        .setComporession(compression);
+  //   ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
+  //       .setComporession(compression);
+  //   String name = ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
 
-    try {
-      core.execute(image, options);
-    } catch (IOException e) {
-      Logger.getGlobal().severe(e.getMessage());
-    }
-  }
+  //   try {
+  //     Core.FileWriter w = new Core.FileWriter(options, "");
+  //     w.write(name, image);
+  //     w.close();
+  //   } catch (IOException e) {
+  //     Logger.getGlobal().severe(e.getMessage());
+  //   }
+  // }
 }

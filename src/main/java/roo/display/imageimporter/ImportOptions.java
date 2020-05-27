@@ -43,8 +43,8 @@ public class ImportOptions {
   private Storage storage;
   private Encoding encoding;
   private Compression compression;
-  private String name;
-  private String resourceName;
+//  private String name;
+//  private String resourceName;
   private File outputHeaderDirectory;
   private File outputPayloadDirectory;
 
@@ -60,8 +60,8 @@ public class ImportOptions {
   public Storage getStorage() { return storage; }
   public Encoding getEncoding() { return encoding; }
   public Compression getCompression() { return compression; }
-  public String getName() { return name; }
-  public String getResourceName() { return resourceName; }
+//  public String getName() { return name; }
+//  public String getResourceName() { return resourceName; }
   public File getOutputHeaderDirectory() { return outputHeaderDirectory; }
   public File getOutputPayloadDirectory() { return outputPayloadDirectory; }
 
@@ -69,7 +69,7 @@ public class ImportOptions {
   public String getFgColor() { return fgColor; }
 
   public ImportOptions initFromInput(File input) {
-    setName(getRecommendedNameFromInputFilename(input.getName()));
+    // setName(getRecommendedNameFromInputFilename(input.getName()));
     setOutputDirectory(input.getParentFile());
     return this;
   }
@@ -89,13 +89,13 @@ public class ImportOptions {
     return this;
   }
 
-  public ImportOptions setName(String name) {
-    this.name = name;
-    //if (this.resourceName == null) {
-      this.resourceName = getResourceNameFromName(name);
-    //}
-    return this;
-  }
+  // public ImportOptions setName(String name) {
+  //   this.name = name;
+  //   //if (this.resourceName == null) {
+  //     this.resourceName = getResourceNameFromName(name);
+  //   //}
+  //   return this;
+  // }
 
   public ImportOptions setOutputHeaderDirectory(File outputHeaderDirectory) {
     this.outputHeaderDirectory = outputHeaderDirectory;

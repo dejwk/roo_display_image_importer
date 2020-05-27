@@ -52,12 +52,14 @@ public class Core {
     private OutputStream headerFileStream;
     private OutputStream cppFileStream;
 
+    private String name;
     private ImportOptions options;
 
     public FileWriter(ImportOptions options, String name) throws IOException {
+      this.name = name;
       this.options = options;
-      File headerFile = new File(options.getOutputHeaderDirectory(), options.getName() + ".h");
-      File cppFile = new File(options.getOutputHeaderDirectory(), options.getName() + ".cpp");
+      File headerFile = new File(options.getOutputHeaderDirectory(), name + ".h");
+      File cppFile = new File(options.getOutputHeaderDirectory(), name + ".cpp");
 
       this.headerFileStream = new FileOutputStream(headerFile);
       this.cppFileStream = new FileOutputStream(cppFile);
@@ -84,7 +86,7 @@ public class Core {
 
     private void writeCppPreamble() throws IOException {
       Writer writer = new BufferedWriter(new OutputStreamWriter(cppFileStream));
-      writer.write("#include \"" + options.getName() + ".h\"\n");
+      writer.write("#include \"" + name + ".h\"\n");
       if (options.getStorage() == Storage.SPIFFS) {
         writer.write("#include \"SPIFFS.h\"\n");
       }
@@ -152,7 +154,7 @@ public class Core {
           .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
       } else {
         HexWriter hexWriter = new HexWriter(writer);
-        hexWriter.printComment("Image file " + options.getName() + " " + image.getWidth() + "x" + image.getHeight() + ", "
+        hexWriter.printComment("Image file " + name + " " + image.getWidth() + "x" + image.getHeight() + ", "
             + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + encoded.length + " bytes \n");
         hexWriter.beginStatic(resourceName + "_data");
         hexWriter.printBuffer(encoded);
@@ -186,11 +188,15 @@ public class Core {
     }
   }
 
-  public void execute(BufferedImage image, ImportOptions options) throws IOException {
-    FileWriter w = new FileWriter(options, options.getName());
-    w.write(options.getName(), image);
-    w.close();
-  }
+  // public FileWriter newWriter(String name) throws IOException {
+  //   return new FileWriter(options, name);
+  // }
+
+  // public void execute(BufferedImage image, ImportOptions options) throws IOException {
+  //   FileWriter w = new FileWriter(options, options.getName());
+  //   w.write(options.getName(), image);
+  //   w.close();
+  // }
 
   private static String getCppImageTypeNameForEncoding(ImportOptions options, TypeScoping scoping) {
     String resource = scoping.scope() + (options.getStorage() == Storage.SPIFFS ? "FileResource" : "PrgMemResource");
