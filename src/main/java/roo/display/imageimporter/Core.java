@@ -59,6 +59,16 @@ public class Core {
     writer.flush();
   }
 
+  private void writeHeaderDeclaration(OutputStream headerStream, ImportOptions options) throws IOException {
+    Writer writer = new BufferedWriter(new OutputStreamWriter(headerStream));
+    String variable = options.getResourceName();
+    String qualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.QUALIFIED);
+
+    writer.write("const " + qualified_typename + "& " + variable + "_streamable();\n");
+    writer.write("const ::roo_display::Drawable& " + variable + "();\n");
+    writer.flush();
+  }
+
   private void writeCppPreamble(OutputStream cppStream, ImportOptions options) throws IOException {
     Writer writer = new BufferedWriter(new OutputStreamWriter(cppStream));
     writer.write("#include \"" + options.getName() + ".h\"\n");
@@ -68,6 +78,46 @@ public class Core {
     writer.write("\n");
     writer.write("using namespace roo_display;\n");
     writer.write("\n");
+    writer.flush();
+  }
+
+  private void writeCppDefinition(OutputStream cppStream, ImportOptions options, String dataFileName, 
+                                  BufferedImage image, Properties encoderProperties,
+                                  byte[] encoded) throws IOException {
+    Writer writer = new BufferedWriter(new OutputStreamWriter(cppStream));
+    String variable = options.getResourceName();
+    String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
+    boolean rle = (options.getCompression() == Compression.RLE);
+    if (options.getStorage() == Storage.SPIFFS) {
+      writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
+      writer.write("  static FileResource file(SPIFFS, \"/" + dataFileName + "\");\n");
+      writer.write("  static " + unqualified_typename + " value(\n      " + image.getWidth() + ", " + image.getHeight()
+          + ", file, " + getCppEncodingConstructor(options, encoderProperties) + ");\n");
+      writer.write("  return value;\n");
+      writer.write("}\n");
+    } else {
+      HexWriter hexWriter = new HexWriter(writer);
+      hexWriter.printComment("Image file " + options.getName() + " " + image.getWidth() + "x" + image.getHeight() + ", "
+          + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + encoded.length + " bytes \n");
+      hexWriter.beginStatic(variable + "_data");
+      hexWriter.printBuffer(encoded);
+      hexWriter.end();
+
+      // hexWriter.writeDeclaration(variable + "_data");
+      writer.write("\n");
+      writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
+      writer.write("  static " + unqualified_typename + " value(\n      " + image.getWidth() + ", " + image.getHeight()
+          + ", " + variable + "_data" + ", "
+          + getCppEncodingConstructor(options, encoderProperties) + ");\n");
+      writer.write("  return value;\n");
+      writer.write("}\n");
+    }
+    writer.write("\n");
+    writer.write("const Drawable& " + variable + "() {\n");
+    writer.write("  static auto drawable = MakeDrawableStreamable(" + variable + "_streamable());\n");
+    writer.write("  return drawable;\n");
+    writer.write("}\n");
+
     writer.flush();
   }
 
@@ -100,48 +150,11 @@ public class Core {
       payloadStream.close();
     }
 
-    String variable = options.getResourceName();
-    String qualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.QUALIFIED);
-    Writer writer = new BufferedWriter(new OutputStreamWriter(headerStream));
+    writeHeaderDeclaration(headerStream, options);
+    headerStream.close();
 
-    writer.write("const " + qualified_typename + "& " + variable + "_streamable();\n");
-    writer.write("const ::roo_display::Drawable& " + variable + "();\n");
-    writer.close();
-
-    String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
-    writer = new BufferedWriter(new OutputStreamWriter(cppStream));
-    boolean rle = (options.getCompression() == Compression.RLE);
-    if (options.getStorage() == Storage.SPIFFS) {
-      writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
-      writer.write("  static FileResource file(SPIFFS, \"/" + dataFile.getName() + "\");\n");
-      writer.write("  static " + unqualified_typename + " value(\n      " + image.getWidth() + ", " + image.getHeight()
-          + ", file, " + getCppEncodingConstructor(options, encoder.getProperties()) + ");\n");
-      writer.write("  return value;\n");
-      writer.write("}\n");
-    } else {
-      HexWriter hexWriter = new HexWriter(writer);
-
-      hexWriter.printComment("Image file " + options.getName() + " " + image.getWidth() + "x" + image.getHeight() + ", "
-          + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + bos.size() + " bytes \n");
-      hexWriter.beginStatic(variable + "_data");
-      hexWriter.printBuffer(bos.toByteArray());
-      hexWriter.end();
-
-      // hexWriter.writeDeclaration(variable + "_data");
-      writer.write("\n");
-      writer.write("const " + unqualified_typename + "& " + variable + "_streamable() {\n");
-      writer.write("  static " + unqualified_typename + " value(\n      " + image.getWidth() + ", " + image.getHeight()
-          + ", " + variable + "_data" + ", "
-          + getCppEncodingConstructor(options, encoder.getProperties()) + ");\n");
-      writer.write("  return value;\n");
-      writer.write("}\n");
-    }
-    writer.write("\n");
-    writer.write("const Drawable& " + variable + "() {\n");
-    writer.write("  static auto drawable = MakeDrawableStreamable(" + variable + "_streamable());\n");
-    writer.write("  return drawable;\n");
-    writer.write("}\n");
-    writer.close();
+    writeCppDefinition(cppStream, options, dataFile.getName(), image, encoder.getProperties(), bos.toByteArray());
+    cppStream.close();
   }
 
   private static String getCppImageTypeNameForEncoding(ImportOptions options, TypeScoping scoping) {
