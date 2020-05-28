@@ -58,7 +58,7 @@ public class ImageImporter extends JFrame {
     @Option(names = { "--output-dir" }, description = "where to place resulting image files. Defaults to cwd.")
     File outputDir;
 
-    @Option(names = { "--output-name" },
+    @Option(names = { "-o", "--output-name" },
             description = "if set, all images will be generated in a single file by that name. " +
                           "Otherwise, each image goes to a separate file.")
     String outputName;
@@ -107,21 +107,20 @@ public class ImageImporter extends JFrame {
             String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
             //options.setName(name);
             BufferedImage image = ImageIO.read(absoluteInput);
-            Core.FileWriter writer = new Core.FileWriter(options, name);
-            writer.write(name, image);
-            writer.close();
+            Core core = new Core(options, name);
+            core.write(name, image);
+            core.close();
           }
         } else {
-          Core.FileWriter writer = new Core.FileWriter(options, outputName);
+          Core core = new Core(options, outputName);
           for (File input : inputFiles) {
             File absoluteInput = openFile(inputDir, input);
             String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
             //options.setName(name);
             BufferedImage image = ImageIO.read(absoluteInput);
-            writer.write(name, image);
-            writer.close();
+            core.write(name, image);
           }
-
+          core.close();
         }
       }
       return null;
@@ -316,9 +315,9 @@ public class ImageImporter extends JFrame {
     String name = ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
 
     try {
-      Core.FileWriter w = new Core.FileWriter(options, name);
-      w.write(name, image);
-      w.close();
+      Core core = new Core(options, name);
+      core.write(name, image);
+      core.close();
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());
     }

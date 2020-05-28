@@ -45,158 +45,121 @@ public class Core {
     }
   }
 
-  public Core() {
+  private OutputStream headerFileStream;
+  private OutputStream cppFileStream;
+
+  private String name;
+  private ImportOptions options;
+
+  public Core(ImportOptions options, String name) throws IOException {
+    this.name = name;
+    this.options = options;
+    File headerFile = new File(options.getOutputHeaderDirectory(), name + ".h");
+    File cppFile = new File(options.getOutputHeaderDirectory(), name + ".cpp");
+
+    this.headerFileStream = new FileOutputStream(headerFile);
+    this.cppFileStream = new FileOutputStream(cppFile);
+
+    writeHeaderPreamble();
+    writeCppPreamble();
   }
 
-  static class FileWriter {
-    private OutputStream headerFileStream;
-    private OutputStream cppFileStream;
+  public void close() throws IOException {
+    headerFileStream.close();
+    cppFileStream.close();
+  }
 
-    private String name;
-    private ImportOptions options;
-
-    public FileWriter(ImportOptions options, String name) throws IOException {
-      this.name = name;
-      this.options = options;
-      File headerFile = new File(options.getOutputHeaderDirectory(), name + ".h");
-      File cppFile = new File(options.getOutputHeaderDirectory(), name + ".cpp");
-
-      this.headerFileStream = new FileOutputStream(headerFile);
-      this.cppFileStream = new FileOutputStream(cppFile);
-
-      writeHeaderPreamble();
-      writeCppPreamble();
+  private void writeHeaderPreamble() throws IOException {
+    Writer writer = new BufferedWriter(new OutputStreamWriter(headerFileStream));
+    writer.write("#include <Arduino.h>\n");
+    writer.write("#include \"roo_display/image/image.h\"\n");
+    if (options.getStorage() == Storage.SPIFFS) {
+      writer.write("#include \"roo_display/io/file.h\"\n");
     }
+    writer.write("\n");
+    writer.flush();
+  }
 
-    public void close() throws IOException {
-      headerFileStream.close();
-      cppFileStream.close();
+  private void writeCppPreamble() throws IOException {
+    Writer writer = new BufferedWriter(new OutputStreamWriter(cppFileStream));
+    writer.write("#include \"" + name + ".h\"\n");
+    if (options.getStorage() == Storage.SPIFFS) {
+      writer.write("#include \"SPIFFS.h\"\n");
     }
+    writer.write("\n" + "using namespace roo_display;\n" + "\n");
+    writer.flush();
+  }
 
-    private void writeHeaderPreamble() throws IOException {
-      Writer writer = new BufferedWriter(new OutputStreamWriter(headerFileStream));
-      writer.write("#include <Arduino.h>\n");
-      writer.write("#include \"roo_display/image/image.h\"\n");
-      if (options.getStorage() == Storage.SPIFFS) {
-        writer.write("#include \"roo_display/io/file.h\"\n");
+  public void write(String resourceName, BufferedImage image) throws IOException {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    OutputStream os = new BufferedOutputStream(bos);
+    Encoder encoder = createEncoder(options, os);
+    for (int i = 0; i < image.getHeight(); ++i) {
+      for (int j = 0; j < image.getWidth(); ++j) {
+        int rgb = image.getRGB(j, i);
+        encoder.encodePixel(rgb);
       }
-      writer.write("\n");
-      writer.flush();
+    }
+    encoder.close();
+    os.close();
+
+    File dataFile = new File(options.getOutputPayloadDirectory(), resourceName + ".img");
+    if (options.getStorage() == Storage.SPIFFS) {
+      OutputStream payloadStream = new FileOutputStream(dataFile);
+      bos.writeTo(payloadStream);
+      payloadStream.close();
     }
 
-    private void writeCppPreamble() throws IOException {
-      Writer writer = new BufferedWriter(new OutputStreamWriter(cppFileStream));
-      writer.write("#include \"" + name + ".h\"\n");
-      if (options.getStorage() == Storage.SPIFFS) {
-        writer.write("#include \"SPIFFS.h\"\n");
-      }
-      writer.write(
-        "\n" +
-        "using namespace roo_display;\n" +
-        "\n");
-      writer.flush();
-    }
+    writeHeaderDeclaration(resourceName);
 
-    public void write(String resourceName, BufferedImage image) throws IOException {
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      OutputStream os = new BufferedOutputStream(bos);
-      Encoder encoder = createEncoder(options, os);
-      for (int i = 0; i < image.getHeight(); ++i) {
-        for (int j = 0; j < image.getWidth(); ++j) {
-          int rgb = image.getRGB(j, i);
-          encoder.encodePixel(rgb);
-        }
-      }
-      encoder.close();
-      os.close();
+    writeCppDefinition(resourceName, dataFile.getName(), image, encoder.getProperties(), bos.toByteArray());
+  }
 
-      File dataFile = new File(options.getOutputPayloadDirectory(), resourceName + ".img");
-      if (options.getStorage() == Storage.SPIFFS) {
-        OutputStream payloadStream = new FileOutputStream(dataFile);
-        bos.writeTo(payloadStream);
-        payloadStream.close();
-      }
+  private void writeHeaderDeclaration(String resourceName) throws IOException {
+    Writer writer = new BufferedWriter(new OutputStreamWriter(headerFileStream));
+    String qualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.QUALIFIED);
 
-      writeHeaderDeclaration(resourceName);
+    writer.write("const " + qualified_typename + "& " + resourceName + "_streamable();\n");
+    writer.write("const ::roo_display::Drawable& " + resourceName + "();\n");
+    writer.flush();
+  }
 
-      writeCppDefinition(resourceName, dataFile.getName(), image, encoder.getProperties(), bos.toByteArray());
-    }
+  private void writeCppDefinition(String resourceName, String dataFileName, BufferedImage image,
+      Properties encoderProperties, byte[] encoded) throws IOException {
+    Writer writer = new BufferedWriter(new OutputStreamWriter(cppFileStream));
+    String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
+    boolean rle = (options.getCompression() == Compression.RLE);
+    if (options.getStorage() == Storage.SPIFFS) {
+      String template = "const {TYPE}& {VAR}_streamable() {\n"
+          + "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" + "  static {TYPE} value(\n"
+          + "      {WIDTH}, {HEIGHT}, file, {CONSTRUCTOR});\n" + "  return value;\n" + "}\n\n";
 
-    private void writeHeaderDeclaration(String resourceName) throws IOException {
-      Writer writer = new BufferedWriter(new OutputStreamWriter(headerFileStream));
-      String qualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.QUALIFIED);
-
-      writer.write("const " + qualified_typename + "& " + resourceName + "_streamable();\n");
-      writer.write("const ::roo_display::Drawable& " + resourceName + "();\n");
-      writer.flush();
-    }
-
-    private void writeCppDefinition(String resourceName, String dataFileName, BufferedImage image,
-                                    Properties encoderProperties, byte[] encoded) throws IOException {
-      Writer writer = new BufferedWriter(new OutputStreamWriter(cppFileStream));
-      String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
-      boolean rle = (options.getCompression() == Compression.RLE);
-      if (options.getStorage() == Storage.SPIFFS) {
-        String template =
-          "const {TYPE}& {VAR}_streamable() {\n" +
-          "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" +
-          "  static {TYPE} value(\n" +
-          "      {WIDTH}, {HEIGHT}, file, {CONSTRUCTOR});\n" +
-          "  return value;\n" +
-          "}\n";
-
-        writer.write(template
-          .replace("{TYPE}", unqualified_typename)
-          .replace("{VAR}", resourceName)
-          .replace("{DATAFILE}", dataFileName)
-          .replace("{WIDTH}", String.valueOf(image.getWidth()))
+      writer.write(template.replace("{TYPE}", unqualified_typename).replace("{VAR}", resourceName)
+          .replace("{DATAFILE}", dataFileName).replace("{WIDTH}", String.valueOf(image.getWidth()))
           .replace("{HEIGHT}", String.valueOf(image.getHeight()))
           .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
-      } else {
-        HexWriter hexWriter = new HexWriter(writer);
-        hexWriter.printComment("Image file " + name + " " + image.getWidth() + "x" + image.getHeight() + ", "
-            + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + encoded.length + " bytes \n");
-        hexWriter.beginStatic(resourceName + "_data");
-        hexWriter.printBuffer(encoded);
-        hexWriter.end();
+    } else {
+      HexWriter hexWriter = new HexWriter(writer);
+      hexWriter.printComment("Image file " + resourceName + " " + image.getWidth() + "x" + image.getHeight() + ", "
+          + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + encoded.length + " bytes \n");
+      hexWriter.beginStatic(resourceName + "_data");
+      hexWriter.printBuffer(encoded);
+      hexWriter.end();
 
-        String template =
-          "\n" +
-          "const {TYPE}& {VAR}_streamable() {\n" +
-          "  static {TYPE} value(\n" +
-          "      {WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR});\n" +
-          "  return value;\n" +
-          "}\n";
+      String template = "\n" + "const {TYPE}& {VAR}_streamable() {\n" + "  static {TYPE} value(\n"
+          + "      {WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR});\n" + "  return value;\n" + "}\n\n";
 
-        writer.write(template
-            .replace("{TYPE}", unqualified_typename)
-            .replace("{VAR}", resourceName)
-            .replace("{WIDTH}", String.valueOf(image.getWidth()))
-            .replace("{HEIGHT}", String.valueOf(image.getHeight()))
-            .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
-      }
-
-      String template =
-        "\n" +
-        "const Drawable& {VAR}() {\n" +
-        "  static auto drawable = MakeDrawableStreamable({VAR}_streamable());\n" +
-        "  return drawable;\n" +
-        "}\n";
-
-      writer.write(template.replace("{VAR}", resourceName));
-      writer.flush();
+      writer.write(template.replace("{TYPE}", unqualified_typename).replace("{VAR}", resourceName)
+          .replace("{WIDTH}", String.valueOf(image.getWidth())).replace("{HEIGHT}", String.valueOf(image.getHeight()))
+          .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
     }
+
+    String template = "\n" + "const Drawable& {VAR}() {\n"
+        + "  static auto drawable = MakeDrawableStreamable({VAR}_streamable());\n" + "  return drawable;\n" + "}\n\n";
+
+    writer.write(template.replace("{VAR}", resourceName));
+    writer.flush();
   }
-
-  // public FileWriter newWriter(String name) throws IOException {
-  //   return new FileWriter(options, name);
-  // }
-
-  // public void execute(BufferedImage image, ImportOptions options) throws IOException {
-  //   FileWriter w = new FileWriter(options, options.getName());
-  //   w.write(options.getName(), image);
-  //   w.close();
-  // }
 
   private static String getCppImageTypeNameForEncoding(ImportOptions options, TypeScoping scoping) {
     String resource = scoping.scope() + (options.getStorage() == Storage.SPIFFS ? "FileResource" : "PrgMemResource");
@@ -208,23 +171,31 @@ public class Core {
     boolean prgmem = (options.getStorage() == Storage.PROGMEM);
     switch (options.getEncoding()) {
     case ARGB8888:
-      return rle ? "{1}RleImage<{1}Argb8888, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb8888>" : "{1}SimpleImage<{0}, {1}Argb8888>";
+      return rle ? "{1}RleImage<{1}Argb8888, {0}>"
+        : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb8888>" : "{1}SimpleImage<{0}, {1}Argb8888>";
     case ARGB6666:
-      return rle ? "{1}RleImage<{1}Argb6666, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb6666>" : "{1}SimpleImage<{0}, {1}Argb6666>";
+      return rle ? "{1}RleImage<{1}Argb6666, {0}>"
+        : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb6666>" : "{1}SimpleImage<{0}, {1}Argb6666>";
     case ARGB4444:
-      return rle ? "{1}RleImage<{1}Argb4444, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb4444>" : "{1}SimpleImage<{0}, {1}Argb4444>";
+      return rle ? "{1}RleImage<{1}Argb4444, {0}>"
+        : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb4444>" : "{1}SimpleImage<{0}, {1}Argb4444>";
     case RGB565:
-      return rle ? "{1}RleImage<{1}Rgb565, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Rgb565>" : "{1}SimpleImage<{0}, {1}Rgb565>";
+      return rle ? "{1}RleImage<{1}Rgb565, {0}>"
+        : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Rgb565>" : "{1}SimpleImage<{0}, {1}Rgb565>";
     // case RGB565_ALPHA4: return "{1}Rgb565Alpha4RleImage<{0}>";
     case GRAYSCALE8:
-      return rle ? "{1}RleImage<{1}Grayscale8, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale8>" : "{1}SimpleImage<{0}, {1}Grayscale8>";
+      return rle ? "{1}RleImage<{1}Grayscale8, {0}>"
+        : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale8>" : "{1}SimpleImage<{0}, {1}Grayscale8>";
     // return rle ? "{1}ImageRle4bppxPolarized<{1}Alpha4, {0}>" : "{1}Raster<{0}, {1}Alpha4>";
     case ALPHA8:
-      return rle ? "{1}RleImage<{1}Alpha8, {0}>" : prgmem ? "{1}Raster<{0}, {1}Alpha8>" : "{1}SimpleImage<{0}, {1}Alpha8>";
+      return rle ? "{1}RleImage<{1}Alpha8, {0}>"
+        : prgmem ? "{1}Raster<{0}, {1}Alpha8>" : "{1}SimpleImage<{0}, {1}Alpha8>";
     case GRAYSCALE4:
-      return rle ? "{1}RleImage4bppxPolarized<{1}Grayscale4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale4>" : "{1}SimpleImage<{0}, {1}Grayscale4>";
+      return rle ? "{1}RleImage4bppxPolarized<{1}Grayscale4, {0}>"
+        : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale4>" : "{1}SimpleImage<{0}, {1}Grayscale4>";
     case ALPHA4:
-      return rle ? "{1}RleImage4bppxPolarized<{1}Alpha4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Alpha4>" : "{1}SimpleImage<{0}, {1}Alpha4>";
+      return rle ? "{1}RleImage4bppxPolarized<{1}Alpha4, {0}>"
+        : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Alpha4>" : "{1}SimpleImage<{0}, {1}Alpha4>";
     case MONOCHROME:
       return prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Monochrome>" : "{1}SimpleImage<{0}, {1}Monochrome>";
     default:
@@ -298,7 +269,7 @@ public class Core {
     case MONOCHROME:
       factory = new MonochromeEncoderFactory();
       break;
-     default:
+    default:
       throw new IllegalArgumentException("Unsupported encoding: " + options.getEncoding());
     }
     return factory.create(rle, os);
