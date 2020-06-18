@@ -100,23 +100,22 @@ public class ImageImporter extends JFrame {
           options.setOutputPayloadDirectory(outputPayloadDir);
         }
 
-        //Core core = new Core();
         if (outputName == null) {
+          // Each image goes to a separate file.
           for (File input : inputFiles) {
             File absoluteInput = openFile(inputDir, input);
             String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-            //options.setName(name);
             BufferedImage image = ImageIO.read(absoluteInput);
             Core core = new Core(options, name);
             core.write(name, image);
             core.close();
           }
         } else {
+          // All images go to a single file.
           Core core = new Core(options, outputName);
           for (File input : inputFiles) {
             File absoluteInput = openFile(inputDir, input);
             String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-            //options.setName(name);
             BufferedImage image = ImageIO.read(absoluteInput);
             core.write(name, image);
           }
@@ -158,12 +157,9 @@ public class ImageImporter extends JFrame {
     setLocationRelativeTo(null);
     createMenuBar();
     Container pane = getContentPane();
-    pane.setLayout(new BorderLayout()); // 10, 10));
+    pane.setLayout(new BorderLayout());
 
-    // JPanel imgPanel = new JPanel();
-    // pane.add(imgPanel, BorderLayout.CENTER);
     imageLabel = new JLabel();
-    // imgPanel.add(imageLabel);
     pane.add(imageLabel, BorderLayout.CENTER);
 
     pack();
@@ -309,7 +305,6 @@ public class ImageImporter extends JFrame {
       return;
     }
 
-    //Core core = new Core();
     ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
         .setComporession(compression);
     String name = ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
