@@ -102,7 +102,7 @@ public class Alpha4AntiAliasRleEncoder extends Encoder {
 
   private void emitVarInt(int value) throws IOException {
     if (value < 0) {
-      throw new IllegalArgumentException("Varint can be negative; got: " + value);
+      throw new IllegalArgumentException("Varint can't be negative; got: " + value);
     }
     emitVarIntRecursive(value, false);
   }
