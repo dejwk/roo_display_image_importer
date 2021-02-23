@@ -18,6 +18,9 @@ public class MonochromeEncoder extends Encoder {
   }
 
   public void encodePixel(int pixel) throws IOException {
+    if (isFullyTransparent(pixel)) {
+      pixel = 0;
+    }
     buffer.add(pixel);
     Integer f = freq.get(pixel);
     if (f == null) {
@@ -44,6 +47,12 @@ public class MonochromeEncoder extends Encoder {
       });
       bg = top.get(0).getKey();
       fg = top.get(1).getKey();
+      // A heuristic that uses the transparent color as a background.
+      if (isFullyTransparent(fg) && !isFullyTransparent(bg)) {
+        int tmp = fg;
+        fg = bg;
+        bg = tmp;
+      }
     }
     properties.put("bgColor", color(bg));
     properties.put("fgColor", color(fg));
@@ -56,5 +65,9 @@ public class MonochromeEncoder extends Encoder {
 
   private static String color(int c) {
     return String.format("Color(0x%H)", (long)c & 0xFFFFFFFFL);
+  }
+
+  private static boolean isFullyTransparent(int pixel) {
+    return (pixel & 0xFF000000) == 0;
   }
 }
