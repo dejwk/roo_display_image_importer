@@ -122,9 +122,7 @@ public class Core {
     Writer writer = new BufferedWriter(new OutputStreamWriter(headerFileStream));
     String qualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.QUALIFIED);
 
-    String template =
-      "const ::roo_display::DrawableStreamable<{TYPE}>& {VAR}();\n" +
-      "\n";
+    String template = "const {TYPE}& {VAR}();\n";
 
     writer.write(template
       .replace("{TYPE}", qualified_typename)
@@ -139,10 +137,10 @@ public class Core {
     boolean rle = (options.getCompression() == Compression.RLE);
     if (options.getStorage() == Storage.SPIFFS) {
       String template =
-        "const DrawableStreamable<{TYPE}>& {VAR}() {\n" +
+        "const {TYPE}& {VAR}() {\n" +
         "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" +
-        "  static DrawableStreamable<{TYPE}> value(\n" +
-        "      {TYPE}({WIDTH}, {HEIGHT}, file, {CONSTRUCTOR}));\n" +
+        "  static {TYPE} value(\n" +
+        "      {WIDTH}, {HEIGHT}, file, {CONSTRUCTOR});\n" +
         "  return value;\n" +
         "}\n\n";
 
@@ -163,9 +161,9 @@ public class Core {
 
       String template =
         "\n" +
-        "const DrawableStreamable<{TYPE}>& {VAR}() {\n" +
-        "  static DrawableStreamable<{TYPE}> value(\n" +
-        "      {TYPE}({WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR}));\n" +
+        "const {TYPE}& {VAR}() {\n" +
+        "  static {TYPE} value(\n" +
+        "      {WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR});\n" +
         "  return value;\n" +
         "}\n\n";
 
