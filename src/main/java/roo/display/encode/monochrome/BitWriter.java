@@ -26,7 +26,7 @@ public class BitWriter {
 
   void close() throws IOException {
     if (bitIndex > 0) {
-      buffer >>= (8 - bitIndex);
+      buffer <<= (8 - bitIndex);
       os.write(buffer);
     }
     os.close();
