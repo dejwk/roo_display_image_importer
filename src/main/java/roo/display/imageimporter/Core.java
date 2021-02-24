@@ -71,7 +71,6 @@ public class Core {
 
   private void writeHeaderPreamble() throws IOException {
     Writer writer = new BufferedWriter(new OutputStreamWriter(headerFileStream));
-    writer.write("#include <Arduino.h>\n");
     writer.write("#include \"roo_display/image/image.h\"\n");
     if (options.getStorage() == Storage.SPIFFS) {
       writer.write("#include \"roo_display/io/file.h\"\n");
@@ -154,7 +153,7 @@ public class Core {
     } else {
       HexWriter hexWriter = new HexWriter(writer);
       hexWriter.printComment("Image file " + resourceName + " " + image.getWidth() + "x" + image.getHeight() + ", "
-          + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + encoded.length + " bytes \n");
+          + options.getEncoding().description + ", " + (rle ? " RLE, " : "") + encoded.length + " bytes.\n");
       hexWriter.beginStatic(resourceName + "_data");
       hexWriter.printBuffer(encoded);
       hexWriter.end();
