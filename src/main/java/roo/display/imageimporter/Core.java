@@ -141,7 +141,7 @@ public class Core {
         "  static {TYPE} value(\n" +
         "      {WIDTH}, {HEIGHT}, file, {CONSTRUCTOR});\n" +
         "  return value;\n" +
-        "}\n\n";
+        "}\n";
 
       writer.write(template
         .replace("{TYPE}", unqualified_typename)
@@ -164,7 +164,7 @@ public class Core {
         "  static {TYPE} value(\n" +
         "      {WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR});\n" +
         "  return value;\n" +
-        "}\n\n";
+        "}\n";
 
       writer.write(template
           .replace("{TYPE}", unqualified_typename)
