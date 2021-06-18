@@ -197,13 +197,13 @@ public class Core {
     // case RGB565_ALPHA4: return "{1}Rgb565Alpha4RleImage<{0}>";
     case GRAYSCALE8:
       return rle ? "{1}RleImage<{1}Grayscale8, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale8>" : "{1}SimpleImage<{0}, {1}Grayscale8>";
-    // return rle ? "{1}ImageRle4bppxPolarized<{1}Alpha4, {0}>" : "{1}Raster<{0}, {1}Alpha4>";
+    // return rle ? "{1}ImageRle4bppxBiased<{1}Alpha4, {0}>" : "{1}Raster<{0}, {1}Alpha4>";
     case ALPHA8:
       return rle ? "{1}RleImage<{1}Alpha8, {0}>" : prgmem ? "{1}Raster<{0}, {1}Alpha8>" : "{1}SimpleImage<{0}, {1}Alpha8>";
     case GRAYSCALE4:
-      return rle ? "{1}RleImage4bppxPolarized<{1}Grayscale4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale4>" : "{1}SimpleImage<{0}, {1}Grayscale4>";
+      return rle ? "{1}RleImage4bppxBiased<{1}Grayscale4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale4>" : "{1}SimpleImage<{0}, {1}Grayscale4>";
     case ALPHA4:
-      return rle ? "{1}RleImage4bppxPolarized<{1}Alpha4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Alpha4>" : "{1}SimpleImage<{0}, {1}Alpha4>";
+      return rle ? "{1}RleImage4bppxBiased<{1}Alpha4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Alpha4>" : "{1}SimpleImage<{0}, {1}Alpha4>";
     case MONOCHROME:
       return prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Monochrome>" : "{1}SimpleImage<{0}, {1}Monochrome>";
     default:
