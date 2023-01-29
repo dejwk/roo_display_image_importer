@@ -26,10 +26,10 @@ dependencies {
     // Use JUnit test framework
     //testCompile 'junit:junit:4.12'
 
-    compile files('lib/core.jar')
-    compile files('lib/pde.jar')
-    compile files('lib/commons-cli-1.4.jar')
-    compile 'info.picocli:picocli:3.8.2'
+    implementation files('lib/core.jar')
+    implementation files('lib/pde.jar')
+    implementation files('lib/commons-cli-1.4.jar')
+    implementation 'info.picocli:picocli:3.8.2'
 
     testCompileOnly(
         'junit:junit:4.12'
