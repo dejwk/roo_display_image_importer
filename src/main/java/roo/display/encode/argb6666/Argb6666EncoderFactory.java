@@ -15,6 +15,10 @@ public class Argb6666EncoderFactory implements EncoderFactory {
         return ((argb >> 8) & 0xFC0000) | ((argb >> 6) & 0x03F000) |
                ((argb >> 4) & 0x000FC0) | ((argb >> 2) & 0x00003F);
       }
+
+      public boolean isPixelVisible(int argb) {
+        return (argb >>> 26) != 0;
+      }
     }, os);
   }
 }

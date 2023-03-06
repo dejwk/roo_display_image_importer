@@ -16,6 +16,10 @@ public class Alpha8EncoderFactory implements EncoderFactory {
       public int encodePixel(int argb) {
         return argb >> 24;
       }
+
+      public boolean isPixelVisible(int argb) {
+        return (argb >>> 24) != 0;
+      }
     }, os);
   }
 }

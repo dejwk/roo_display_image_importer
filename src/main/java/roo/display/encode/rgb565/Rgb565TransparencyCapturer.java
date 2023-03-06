@@ -3,8 +3,6 @@ package roo.display.encode.rgb565;
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
 import roo.display.encode.*;
 
 public class Rgb565TransparencyCapturer extends Encoder {
@@ -26,6 +24,10 @@ public class Rgb565TransparencyCapturer extends Encoder {
     } else {
       freq[encode565(pixel)]++;
     }
+  }
+
+  public boolean isPixelVisible(int argb) {
+    return (argb >>> 24) >= 0x80;
   }
 
   public void close() throws IOException {

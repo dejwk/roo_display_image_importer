@@ -25,6 +25,10 @@ public class MultiByteRasterEncoder extends Encoder {
     }
   }
 
+  public boolean isPixelVisible(int argb) {
+    return pixelEncoder.isPixelVisible(argb);
+  }
+
   public void close() throws IOException {
     os.close();
   }

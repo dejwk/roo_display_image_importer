@@ -16,6 +16,10 @@ public class Argb8888EncoderFactory implements EncoderFactory {
       public int encodePixel(int argb) {
         return argb;
       }
+
+      public boolean isPixelVisible(int argb) {
+        return (argb >>> 24) != 0;
+      }
     }, os);
   }
 }

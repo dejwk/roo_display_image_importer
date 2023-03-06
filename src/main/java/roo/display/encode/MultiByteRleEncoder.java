@@ -53,6 +53,10 @@ public class MultiByteRleEncoder extends Encoder {
     }
   }
 
+  public boolean isPixelVisible(int argb) {
+    return pixelEncoder.isPixelVisible(argb);
+  }
+
   private void emitAbsolute(int count) throws IOException {
     emitVarIntRecursive(false, count - 1, false);
     for (int i = 0; i < count; ++i) {

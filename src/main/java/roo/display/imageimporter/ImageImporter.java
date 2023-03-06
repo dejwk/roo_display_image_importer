@@ -28,6 +28,7 @@ public class ImageImporter extends JFrame {
   private File inputFile;
   private File currentDirectory;
   private Compression compression;
+  private boolean autoCrop = true;
   private Storage storage;
 
   public static void main(String[] args) throws Throwable {
@@ -58,27 +59,32 @@ public class ImageImporter extends JFrame {
     @Option(names = { "--output-dir" }, description = "where to place resulting image files. Defaults to cwd.")
     File outputDir;
 
-    @Option(names = { "-o", "--output-name" },
-            description = "if set, all images will be generated in a single file by that name. " +
-                          "Otherwise, each image goes to a separate file.")
+    @Option(names = { "-o",
+        "--output-name" }, description = "if set, all images will be generated in a single file by that name. " +
+            "Otherwise, each image goes to a separate file.")
     String outputName;
 
     @Option(names = { "--input-dir" }, description = "Where to look for input files. Defaults to cwd.")
     File inputDir;
 
-    @Option(names = { "--output-header-dir" },
-            description = "where to place resulting header files. Defaults to output-dir")
+    @Option(names = {
+        "--output-header-dir" }, description = "where to place resulting header files. Defaults to output-dir")
     File outputHeaderDir;
 
-    @Option(names = { "--output-payload-dir" },
-            description = "where to place resulting SPIFFS data files. Defaults to output-dir")
+    @Option(names = {
+        "--output-payload-dir" }, description = "where to place resulting SPIFFS data files. Defaults to output-dir")
     File outputPayloadDir;
+
+    @Option(names = {
+        "--autocrop" }, arity = "0", defaultValue = "true", description = "if true, crops content to visible.")
+    Boolean autoCrop = true;
 
     @Parameters(arity = "0..*", paramLabel = "FILE", description = "File(s) to process.")
     private File[] inputFiles;
 
     @Override
     public Void call() throws Exception {
+      System.out.println(autoCrop);
       if (inputFiles == null || inputFiles.length == 0) {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         ImageImporter importer = new ImageImporter(encoding, compression, storage, outputDir);
@@ -86,7 +92,7 @@ public class ImageImporter extends JFrame {
         importer.setVisible(true);
       } else {
         ImportOptions options = (new ImportOptions()).setEncoding(encoding).setStorage(storage)
-            .setComporession(compression).setOutputDirectory(outputDir);
+            .setCompression(compression).setOutputDirectory(outputDir).setAutoCrop(autoCrop);
         if (bgColor != null) {
           options.setBgColor(bgColor);
         }
@@ -113,7 +119,13 @@ public class ImageImporter extends JFrame {
         } else {
           // All images go to a single file.
           Core core = new Core(options, outputName);
+          boolean first = true;
           for (File input : inputFiles) {
+            if (first) {
+              first = false;
+            } else {
+              core.writeSeparator();
+            }
             File absoluteInput = openFile(inputDir, input);
             String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
             BufferedImage image = ImageIO.read(absoluteInput);
@@ -306,7 +318,7 @@ public class ImageImporter extends JFrame {
     }
 
     ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
-        .setComporession(compression);
+        .setCompression(compression).setAutoCrop(autoCrop);
     String name = ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
 
     try {
@@ -319,24 +331,26 @@ public class ImageImporter extends JFrame {
   }
 
   // private void saveImageIn(String directory) throws IOException {
-  //   JFileChooser fc = new JFileChooser(currentDirectory);
-  //   fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-  //   fc.setSelectedFile(currentDirectory);
-  //   int returnVal = fc.showSaveDialog(this);
-  //   if (returnVal != JFileChooser.APPROVE_OPTION) {
-  //     return;
-  //   }
+  // JFileChooser fc = new JFileChooser(currentDirectory);
+  // fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+  // fc.setSelectedFile(currentDirectory);
+  // int returnVal = fc.showSaveDialog(this);
+  // if (returnVal != JFileChooser.APPROVE_OPTION) {
+  // return;
+  // }
 
-  //   ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
-  //       .setComporession(compression);
-  //   String name = ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
+  // ImportOptions options = new
+  // ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
+  // .setComporession(compression);
+  // String name =
+  // ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
 
-  //   try {
-  //     Core.FileWriter w = new Core.FileWriter(options, "");
-  //     w.write(name, image);
-  //     w.close();
-  //   } catch (IOException e) {
-  //     Logger.getGlobal().severe(e.getMessage());
-  //   }
+  // try {
+  // Core.FileWriter w = new Core.FileWriter(options, "");
+  // w.write(name, image);
+  // w.close();
+  // } catch (IOException e) {
+  // Logger.getGlobal().severe(e.getMessage());
+  // }
   // }
 }

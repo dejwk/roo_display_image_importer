@@ -24,6 +24,10 @@ public class Grayscale4EncoderFactory implements EncoderFactory {
       os.write(intensity4);
     }
   
+    public boolean isPixelVisible(int argb) {
+      return true;
+    }
+
     public void close() throws IOException {
       os.close();
     }

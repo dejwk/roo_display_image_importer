@@ -16,6 +16,10 @@ public class Rgb565Encoder extends Encoder {
     os.write(encoded & 0xFF);
   }
 
+  public boolean isPixelVisible(int argb) {
+    return true;
+  }
+
   public void close() throws IOException {
     os.close();
   }

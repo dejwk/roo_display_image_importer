@@ -15,6 +15,10 @@ public class Argb4444EncoderFactory implements EncoderFactory {
         return ((argb >> 16) & 0xF000) | ((argb >> 12) & 0x0F00) |
                ((argb >> 8) & 0x00F0) | ((argb >> 4) & 0x000F);
       }
+
+      public boolean isPixelVisible(int argb) {
+        return (argb >>> 28) != 0;
+      }
     }, os);
   }
 }

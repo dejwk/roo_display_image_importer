@@ -16,5 +16,7 @@ public abstract class Encoder {
 
   public abstract void encodePixel(int pixel) throws IOException;
 
+  public boolean isPixelVisible(int pixel) { return true; }
+
   public abstract void close() throws IOException;
 }

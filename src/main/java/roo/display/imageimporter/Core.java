@@ -86,9 +86,9 @@ public class Core {
       writer.write("#include \"SPIFFS.h\"\n");
     }
     writer.write(
-      "\n" +
-      "using namespace roo_display;\n" +
-      "\n");
+        "\n" +
+            "using namespace roo_display;\n" +
+            "\n");
     writer.flush();
   }
 
@@ -96,8 +96,36 @@ public class Core {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     OutputStream os = new BufferedOutputStream(bos);
     Encoder encoder = createEncoder(options, os);
-    for (int i = 0; i < image.getHeight(); ++i) {
-      for (int j = 0; j < image.getWidth(); ++j) {
+    // Find out the cropped dimensions.
+    int xMin = image.getWidth();
+    int yMin = image.getHeight();
+    int xMax = -1;
+    int yMax = -1;
+    if (options.getAutoCrop()) {
+      for (int i = 0; i < image.getHeight(); ++i) {
+        for (int j = 0; j < image.getWidth(); ++j) {
+          int argb = image.getRGB(j, i);
+          if (encoder.isPixelVisible(argb)) {
+            if (i < yMin)
+              yMin = i;
+            if (i > yMax)
+              yMax = i;
+            if (j < xMin)
+              xMin = j;
+            if (j > xMax)
+              xMax = j;
+          }
+        }
+      }
+    } else {
+      xMin = 0;
+      yMin = 0;
+      xMax = image.getWidth() - 1;
+      yMax = image.getHeight() - 1;
+    }
+
+    for (int i = yMin; i <= yMax; ++i) {
+      for (int j = xMin; j <= xMax; ++j) {
         int rgb = image.getRGB(j, i);
         encoder.encodePixel(rgb);
       }
@@ -114,7 +142,17 @@ public class Core {
 
     writeHeaderDeclaration(resourceName);
 
-    writeCppDefinition(resourceName, dataFile.getName(), image, encoder.getProperties(), bos.toByteArray());
+    writeCppDefinition(resourceName, dataFile.getName(), image, encoder.getProperties(), bos.toByteArray(),
+        xMin, yMin, xMax, yMax);
+  }
+
+  public void writeSeparator() throws IOException {
+    Writer h = new BufferedWriter(new OutputStreamWriter(headerFileStream));
+    h.write("\n");
+    h.flush();
+    Writer cpp = new BufferedWriter(new OutputStreamWriter(cppFileStream));
+    cpp.write("\n");
+    cpp.flush();
   }
 
   private void writeHeaderDeclaration(String resourceName) throws IOException {
@@ -124,32 +162,33 @@ public class Core {
     String template = "const {TYPE}& {VAR}();\n";
 
     writer.write(template
-      .replace("{TYPE}", qualified_typename)
-      .replace("{VAR}", resourceName));
+        .replace("{TYPE}", qualified_typename)
+        .replace("{VAR}", resourceName));
     writer.flush();
   }
 
   private void writeCppDefinition(String resourceName, String dataFileName, BufferedImage image,
-                                  Properties encoderProperties, byte[] encoded) throws IOException {
+      Properties encoderProperties, byte[] encoded,
+      int xMin, int yMin, int xMax, int yMax) throws IOException {
     Writer writer = new BufferedWriter(new OutputStreamWriter(cppFileStream));
     String unqualified_typename = getCppImageTypeNameForEncoding(options, TypeScoping.UNQUALIFIED);
     boolean rle = (options.getCompression() == Compression.RLE);
     if (options.getStorage() == Storage.SPIFFS) {
-      String template =
-        "const {TYPE}& {VAR}() {\n" +
-        "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" +
-        "  static {TYPE} value(\n" +
-        "      {WIDTH}, {HEIGHT}, file, {CONSTRUCTOR});\n" +
-        "  return value;\n" +
-        "}\n";
+      String template = "const {TYPE}& {VAR}() {\n" +
+          "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" +
+          "  static {TYPE} value(\n" +
+          "      Box({XMIN}, {YMIN}, {XMAX}, {YMAX}), Box(0, 0, {WIDTH_LESS_1}, {HEIGHT_LESS_1}),\n" +
+          "      file, {CONSTRUCTOR});\n" +
+          "  return value;\n" +
+          "}\n";
 
       writer.write(template
-        .replace("{TYPE}", unqualified_typename)
-        .replace("{VAR}", resourceName)
-        .replace("{DATAFILE}", dataFileName)
-        .replace("{WIDTH}", String.valueOf(image.getWidth()))
-        .replace("{HEIGHT}", String.valueOf(image.getHeight()))
-        .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
+          .replace("{TYPE}", unqualified_typename)
+          .replace("{VAR}", resourceName)
+          .replace("{DATAFILE}", dataFileName)
+          .replace("{WIDTH_LESS_1}", String.valueOf(image.getWidth() - 1))
+          .replace("{HEIGHT_LESS_1}", String.valueOf(image.getHeight() - 1))
+          .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
     } else {
       HexWriter hexWriter = new HexWriter(writer);
       hexWriter.printComment("Image file " + resourceName + " " + image.getWidth() + "x" + image.getHeight() + ", "
@@ -158,19 +197,23 @@ public class Core {
       hexWriter.printBuffer(encoded);
       hexWriter.end();
 
-      String template =
-        "\n" +
-        "const {TYPE}& {VAR}() {\n" +
-        "  static {TYPE} value(\n" +
-        "      {WIDTH}, {HEIGHT}, {VAR}_data, {CONSTRUCTOR});\n" +
-        "  return value;\n" +
-        "}\n";
+      String template = "\n" +
+          "const {TYPE}& {VAR}() {\n" +
+          "  static {TYPE} value(\n" +
+          "      Box({XMIN}, {YMIN}, {XMAX}, {YMAX}), Box(0, 0, {WIDTH_LESS_1}, {HEIGHT_LESS_1}),\n" +
+          "      {VAR}_data, {CONSTRUCTOR});\n" +
+          "  return value;\n" +
+          "}\n";
 
       writer.write(template
           .replace("{TYPE}", unqualified_typename)
           .replace("{VAR}", resourceName)
-          .replace("{WIDTH}", String.valueOf(image.getWidth()))
-          .replace("{HEIGHT}", String.valueOf(image.getHeight()))
+          .replace("{WIDTH_LESS_1}", String.valueOf(image.getWidth() - 1))
+          .replace("{HEIGHT_LESS_1}", String.valueOf(image.getHeight() - 1))
+          .replace("{XMIN}", String.valueOf(xMin))
+          .replace("{YMIN}", String.valueOf(yMin))
+          .replace("{XMAX}", String.valueOf(xMax))
+          .replace("{YMAX}", String.valueOf(yMax))
           .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties)));
     }
 
@@ -186,63 +229,73 @@ public class Core {
     boolean rle = (options.getCompression() == Compression.RLE);
     boolean prgmem = (options.getStorage() == Storage.PROGMEM);
     switch (options.getEncoding()) {
-    case ARGB8888:
-      return rle ? "{1}RleImage<{1}Argb8888, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb8888>" : "{1}SimpleImage<{0}, {1}Argb8888>";
-    case ARGB6666:
-      return rle ? "{1}RleImage<{1}Argb6666, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb6666>" : "{1}SimpleImage<{0}, {1}Argb6666>";
-    case ARGB4444:
-      return rle ? "{1}RleImage<{1}Argb4444, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb4444>" : "{1}SimpleImage<{0}, {1}Argb4444>";
-    case RGB565:
-      return rle ? "{1}RleImage<{1}Rgb565, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Rgb565>" : "{1}SimpleImage<{0}, {1}Rgb565>";
-    // case RGB565_ALPHA4: return "{1}Rgb565Alpha4RleImage<{0}>";
-    case GRAYSCALE8:
-      return rle ? "{1}RleImage<{1}Grayscale8, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale8>" : "{1}SimpleImage<{0}, {1}Grayscale8>";
-    // return rle ? "{1}ImageRle4bppxBiased<{1}Alpha4, {0}>" : "{1}Raster<{0}, {1}Alpha4>";
-    case ALPHA8:
-      return rle ? "{1}RleImage<{1}Alpha8, {0}>" : prgmem ? "{1}Raster<{0}, {1}Alpha8>" : "{1}SimpleImage<{0}, {1}Alpha8>";
-    case GRAYSCALE4:
-      return rle ? "{1}RleImage4bppxBiased<{1}Grayscale4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale4>" : "{1}SimpleImage<{0}, {1}Grayscale4>";
-    case ALPHA4:
-      return rle ? "{1}RleImage4bppxBiased<{1}Alpha4, {0}>" : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Alpha4>" : "{1}SimpleImage<{0}, {1}Alpha4>";
-    case MONOCHROME:
-      return prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Monochrome>" : "{1}SimpleImage<{0}, {1}Monochrome>";
-    default:
-      return null;
+      case ARGB8888:
+        return rle ? "{1}RleImage<{1}Argb8888, {0}>"
+            : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb8888>" : "{1}SimpleImage<{0}, {1}Argb8888>";
+      case ARGB6666:
+        return rle ? "{1}RleImage<{1}Argb6666, {0}>"
+            : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb6666>" : "{1}SimpleImage<{0}, {1}Argb6666>";
+      case ARGB4444:
+        return rle ? "{1}RleImage<{1}Argb4444, {0}>"
+            : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Argb4444>" : "{1}SimpleImage<{0}, {1}Argb4444>";
+      case RGB565:
+        return rle ? "{1}RleImage<{1}Rgb565, {0}>"
+            : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Rgb565>" : "{1}SimpleImage<{0}, {1}Rgb565>";
+      // case RGB565_ALPHA4: return "{1}Rgb565Alpha4RleImage<{0}>";
+      case GRAYSCALE8:
+        return rle ? "{1}RleImage<{1}Grayscale8, {0}>"
+            : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale8>" : "{1}SimpleImage<{0}, {1}Grayscale8>";
+      // return rle ? "{1}ImageRle4bppxBiased<{1}Alpha4, {0}>" : "{1}Raster<{0},
+      // {1}Alpha4>";
+      case ALPHA8:
+        return rle ? "{1}RleImage<{1}Alpha8, {0}>"
+            : prgmem ? "{1}Raster<{0}, {1}Alpha8>" : "{1}SimpleImage<{0}, {1}Alpha8>";
+      case GRAYSCALE4:
+        return rle ? "{1}RleImage4bppxBiased<{1}Grayscale4, {0}>"
+            : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Grayscale4>" : "{1}SimpleImage<{0}, {1}Grayscale4>";
+      case ALPHA4:
+        return rle ? "{1}RleImage4bppxBiased<{1}Alpha4, {0}>"
+            : prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Alpha4>" : "{1}SimpleImage<{0}, {1}Alpha4>";
+      case MONOCHROME:
+        return prgmem ? "{1}Raster<const uint8_t PROGMEM*, {1}Monochrome>" : "{1}SimpleImage<{0}, {1}Monochrome>";
+      default:
+        return null;
     }
   }
 
   // private static String getCppEncodingConstructor(ImportOptions options, String
   // transparent565Color, TypeScoping scoping) {return
-  // MessageFormat.format(getCppEncodingConstructorTemplate(options, transparent565Color),
+  // MessageFormat.format(getCppEncodingConstructorTemplate(options,
+  // transparent565Color),
   // scoping.scope());
   // }
 
   private static String getCppEncodingConstructor(ImportOptions options, Properties encoderProperties) {
     switch (options.getEncoding()) {
-    case ARGB8888:
-      return "Argb8888()";
-    case ARGB6666:
-      return "Argb6666()";
-    case ARGB4444:
-      return "Argb4444()";
-    case RGB565:
-      String t = encoderProperties.getProperty("transparentColor");
-      return "Rgb565(" + (t == null ? "" : t) + ")";
-    // case RGB565_ALPHA4: return "Argb8888()";
-    case GRAYSCALE8:
-      return "Grayscale8()";
-    case GRAYSCALE4:
-      return "Grayscale4()";
-    case ALPHA8:
-      return "Alpha8(" + options.getFgColor() + ")";
-    case ALPHA4:
-      return "Alpha4(" + options.getFgColor() + ")";
-    case MONOCHROME:
-      String bg = encoderProperties.getProperty("bgColor");
-      String fg = encoderProperties.getProperty("fgColor");
-      return "Monochrome(" + fg + ", " + bg + ")";
-    default:
-      return null;
+      case ARGB8888:
+        return "Argb8888()";
+      case ARGB6666:
+        return "Argb6666()";
+      case ARGB4444:
+        return "Argb4444()";
+      case RGB565:
+        String t = encoderProperties.getProperty("transparentColor");
+        return "Rgb565(" + (t == null ? "" : t) + ")";
+      // case RGB565_ALPHA4: return "Argb8888()";
+      case GRAYSCALE8:
+        return "Grayscale8()";
+      case GRAYSCALE4:
+        return "Grayscale4()";
+      case ALPHA8:
+        return "Alpha8(" + options.getFgColor() + ")";
+      case ALPHA4:
+        return "Alpha4(" + options.getFgColor() + ")";
+      case MONOCHROME:
+        String bg = encoderProperties.getProperty("bgColor");
+        String fg = encoderProperties.getProperty("fgColor");
+        return "Monochrome(" + fg + ", " + bg + ")";
+      default:
+        return null;
     }
   }
 
@@ -250,35 +303,35 @@ public class Core {
     boolean rle = options.getCompression() == Compression.RLE;
     EncoderFactory factory;
     switch (options.getEncoding()) {
-    case ARGB8888:
-      factory = new Argb8888EncoderFactory();
-      break;
-    case ARGB6666:
-      factory = new Argb6666EncoderFactory();
-      break;
-    case ARGB4444:
-      factory = new Argb4444EncoderFactory();
-      break;
-    case RGB565:
-      factory = new Rgb565EncoderFactory();
-      break;
-    case GRAYSCALE4:
-      factory = new Grayscale4EncoderFactory();
-      break;
-    case GRAYSCALE8:
-      factory = new Grayscale8EncoderFactory();
-      break;
-    case ALPHA8:
-      factory = new Alpha8EncoderFactory();
-      break;
-    case ALPHA4:
-      factory = new Alpha4EncoderFactory();
-      break;
-    case MONOCHROME:
-      factory = new MonochromeEncoderFactory();
-      break;
-     default:
-      throw new IllegalArgumentException("Unsupported encoding: " + options.getEncoding());
+      case ARGB8888:
+        factory = new Argb8888EncoderFactory();
+        break;
+      case ARGB6666:
+        factory = new Argb6666EncoderFactory();
+        break;
+      case ARGB4444:
+        factory = new Argb4444EncoderFactory();
+        break;
+      case RGB565:
+        factory = new Rgb565EncoderFactory();
+        break;
+      case GRAYSCALE4:
+        factory = new Grayscale4EncoderFactory();
+        break;
+      case GRAYSCALE8:
+        factory = new Grayscale8EncoderFactory();
+        break;
+      case ALPHA8:
+        factory = new Alpha8EncoderFactory();
+        break;
+      case ALPHA4:
+        factory = new Alpha4EncoderFactory();
+        break;
+      case MONOCHROME:
+        factory = new MonochromeEncoderFactory();
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported encoding: " + options.getEncoding());
     }
     return factory.create(rle, os);
   }

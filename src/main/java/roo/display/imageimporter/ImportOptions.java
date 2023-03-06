@@ -9,17 +9,19 @@ public class ImportOptions {
     ARGB6666("ARGB 6666"),
     ARGB4444("ARGB 4444"),
     RGB565("RGB 565"),
-    //RGB565_ALPHA4("RGB 565 with extra 4-bit alpha channel"),
+    // RGB565_ALPHA4("RGB 565 with extra 4-bit alpha channel"),
     ALPHA8("8-bit Alpha"),
     ALPHA4("4-bit Alpha"),
     MONOCHROME("1-bit monochrome"),
     GRAYSCALE8("8-bit grayscale"),
     GRAYSCALE4("4-bit grayscale");
-    //TRANSPARENCY_BITMASK("1-bit transparency mask");
+    // TRANSPARENCY_BITMASK("1-bit transparency mask");
 
     public final String description;
 
-    private Encoding(String description) { this.description = description; }
+    private Encoding(String description) {
+      this.description = description;
+    }
   }
 
   public enum Storage {
@@ -28,7 +30,9 @@ public class ImportOptions {
 
     public final String description;
 
-    private Storage(String description) { this.description = description; }
+    private Storage(String description) {
+      this.description = description;
+    }
   }
 
   public enum Compression {
@@ -37,19 +41,22 @@ public class ImportOptions {
 
     public final String description;
 
-    private Compression(String description) { this.description = description; }
+    private Compression(String description) {
+      this.description = description;
+    }
   }
 
   private Storage storage;
   private Encoding encoding;
   private Compression compression;
-//  private String name;
-//  private String resourceName;
+  // private String name;
+  // private String resourceName;
   private File outputHeaderDirectory;
   private File outputPayloadDirectory;
 
   private String bgColor = "color::Transparent";
   private String fgColor = "color::Black";
+  private boolean autoCrop = true;
 
   public ImportOptions() {
     storage = Storage.PROGMEM;
@@ -57,16 +64,39 @@ public class ImportOptions {
     compression = Compression.NONE;
   }
 
-  public Storage getStorage() { return storage; }
-  public Encoding getEncoding() { return encoding; }
-  public Compression getCompression() { return compression; }
-//  public String getName() { return name; }
-//  public String getResourceName() { return resourceName; }
-  public File getOutputHeaderDirectory() { return outputHeaderDirectory; }
-  public File getOutputPayloadDirectory() { return outputPayloadDirectory; }
+  public Storage getStorage() {
+    return storage;
+  }
 
-  public String getBgColor() { return bgColor; }
-  public String getFgColor() { return fgColor; }
+  public Encoding getEncoding() {
+    return encoding;
+  }
+
+  public Compression getCompression() {
+    return compression;
+  }
+
+  public boolean getAutoCrop() {
+    return autoCrop;
+  }
+
+  // public String getName() { return name; }
+  // public String getResourceName() { return resourceName; }
+  public File getOutputHeaderDirectory() {
+    return outputHeaderDirectory;
+  }
+
+  public File getOutputPayloadDirectory() {
+    return outputPayloadDirectory;
+  }
+
+  public String getBgColor() {
+    return bgColor;
+  }
+
+  public String getFgColor() {
+    return fgColor;
+  }
 
   public ImportOptions initFromInput(File input) {
     // setName(getRecommendedNameFromInputFilename(input.getName()));
@@ -84,17 +114,22 @@ public class ImportOptions {
     return this;
   }
 
-  public ImportOptions setComporession(Compression compression) {
+  public ImportOptions setCompression(Compression compression) {
     this.compression = compression;
     return this;
   }
 
+  public ImportOptions setAutoCrop(boolean autoCrop) {
+    this.autoCrop = autoCrop;
+    return this;
+  }
+
   // public ImportOptions setName(String name) {
-  //   this.name = name;
-  //   //if (this.resourceName == null) {
-  //     this.resourceName = getResourceNameFromName(name);
-  //   //}
-  //   return this;
+  // this.name = name;
+  // //if (this.resourceName == null) {
+  // this.resourceName = getResourceNameFromName(name);
+  // //}
+  // return this;
   // }
 
   public ImportOptions setOutputHeaderDirectory(File outputHeaderDirectory) {

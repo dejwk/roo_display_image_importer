@@ -55,6 +55,10 @@ public class Rgb565RleEncoder extends Encoder {
     }
   }
 
+  public boolean isPixelVisible(int argb) {
+    return true;
+  }
+
   private void emitAbsolute(int count) throws IOException {
     if (count <= 64) {
       os.write(0x00 | (count - 1));

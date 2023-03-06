@@ -18,6 +18,10 @@ public class Grayscale8EncoderFactory implements EncoderFactory {
         // See https://stackoverflow.com/questions/596216
         return ((((argb >> 16) & 0xFF) * 3) + (((argb >> 8) & 0xFF) * 4) + (argb & 0xFF)) >> 3;
       }
+
+      public boolean isPixelVisible(int argb) {
+        return true;
+      }
     }, os);
   }
 }

@@ -32,6 +32,10 @@ public class Rgb565EncoderAlpha4 extends Encoder {
     alphaEncoder.encodePixel(pixel & 0xFF000000);
   }
 
+  public boolean isPixelVisible(int argb) {
+    return alphaEncoder.isPixelVisible(argb);
+  }
+
   public void close() throws IOException {
     colorEncoder.close();
     alphaEncoder.close();

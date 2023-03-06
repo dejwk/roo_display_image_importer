@@ -15,6 +15,10 @@ public class Rgb565EncoderFactory implements EncoderFactory {
         public int encodePixel(int argb) {
           return ((argb >> 8) & 0xF800) | ((argb >> 5) & 0x07E0) | ((argb >> 3) & 0x1F);
         }
+
+        public boolean isPixelVisible(int argb) {
+          return true;
+        }
       }, os)
     );
   }

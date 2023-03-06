@@ -17,6 +17,12 @@ public class PlainAlpha4Encoder extends Encoder {
     os.write(alpha);
   }
 
+  public boolean isPixelVisible(int argb) {
+    int trunc = (argb >> 24) & 0xFF;
+    int alpha = (trunc - (trunc >> 5)) >> 4;
+    return alpha != 0;
+  }
+
   public void close() throws IOException {
     os.close();
   }

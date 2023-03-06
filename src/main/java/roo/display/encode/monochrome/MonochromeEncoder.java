@@ -63,6 +63,10 @@ public class MonochromeEncoder extends Encoder {
     os.close();
   }
 
+  public boolean isPixelVisible(int argb) {
+    return (argb >>> 24) != 0;
+  }
+
   private static String color(int c) {
     return String.format("Color(0x%H)", (long)c & 0xFFFFFFFFL);
   }
