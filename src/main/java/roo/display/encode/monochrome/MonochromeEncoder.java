@@ -7,12 +7,12 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class MonochromeEncoder extends Encoder {
-  private BitWriter os;
+  private SubByteWriter os;
   List<Integer> buffer;
   Map<Integer, Integer> freq;
 
   public MonochromeEncoder(OutputStream os) {
-    this.os = new BitWriter(os);
+    this.os = new SubByteWriter(os, 1, true);
     this.buffer = new ArrayList<Integer>();
     this.freq = new HashMap<>();
   }
@@ -58,7 +58,7 @@ public class MonochromeEncoder extends Encoder {
     properties.put("fgColor", color(fg));
 
     for (int pixel : buffer) {
-      os.write(pixel != bg);
+      os.write(pixel != bg ? 1 : 0);
     }
     os.close();
   }
@@ -68,7 +68,7 @@ public class MonochromeEncoder extends Encoder {
   }
 
   private static String color(int c) {
-    return String.format("Color(0x%H)", (long)c & 0xFFFFFFFFL);
+    return String.format("Color(0x%H)", (long) c & 0xFFFFFFFFL);
   }
 
   private static boolean isFullyTransparent(int pixel) {

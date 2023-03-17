@@ -255,6 +255,14 @@ public class ImageImporter extends JFrame {
 
     group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.MONOCHROME)));
 
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.INDEXED1)));
+
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.INDEXED2)));
+
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.INDEXED4)));
+
+    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.INDEXED8)));
+
     for (Enumeration<AbstractButton> options = group.getElements(); options.hasMoreElements();) {
       format.add(options.nextElement());
     }

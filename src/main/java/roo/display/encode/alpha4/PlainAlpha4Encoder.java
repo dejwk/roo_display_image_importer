@@ -5,10 +5,10 @@ import java.io.OutputStream;
 import roo.display.encode.*;
 
 public class PlainAlpha4Encoder extends Encoder {
-  private HalfByteWriter os;
+  private SubByteWriter os;
 
   public PlainAlpha4Encoder(OutputStream os) {
-    this.os = new HalfByteWriter(os);
+    this.os = new SubByteWriter(os, 4, true);
   }
 
   public void encodePixel(int pixel) throws IOException {

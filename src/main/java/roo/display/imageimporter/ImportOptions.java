@@ -14,7 +14,12 @@ public class ImportOptions {
     ALPHA4("4-bit Alpha"),
     MONOCHROME("1-bit monochrome"),
     GRAYSCALE8("8-bit grayscale"),
-    GRAYSCALE4("4-bit grayscale");
+    GRAYSCALE4("4-bit grayscale"),
+    INDEXED8("Indexed, 8-bit (256-color) palette"),
+    INDEXED4("Indexed, 4-bit (16-color) palette"),
+    INDEXED2("Indexed, 2-bit (4-color) palette"),
+    INDEXED1("Indexed, 1-bit (2-color) palette");
+
     // TRANSPARENCY_BITMASK("1-bit transparency mask");
 
     public final String description;
