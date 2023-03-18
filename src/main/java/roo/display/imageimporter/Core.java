@@ -255,7 +255,7 @@ public class Core {
   }
 
   private static String getCppImageTypeNameForEncoding(ImportOptions options, TypeScoping scoping) {
-    String resource = scoping.scope() + (options.getStorage() == Storage.SPIFFS ? "FileResource" : "PrgMemResource");
+    String resource = scoping.scope() + (options.getStorage() == Storage.SPIFFS ? "FileResource" : "ProgMemPtr");
     return MessageFormat.format(getCppImageTypeNameFormatForEncoding(options), resource, scoping.scope());
   }
 
