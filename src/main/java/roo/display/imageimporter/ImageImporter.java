@@ -84,7 +84,6 @@ public class ImageImporter extends JFrame {
 
     @Override
     public Void call() throws Exception {
-      System.out.println(autoCrop);
       if (inputFiles == null || inputFiles.length == 0) {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         ImageImporter importer = new ImageImporter(encoding, compression, storage, outputDir);
