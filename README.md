@@ -55,6 +55,8 @@ Imports specified images to be used with the roo.display library
 * INDEXED4
 * INDEXED8
 
+Note: before converting to indexed color modes, make sure that the image uses no more colors than allowed by the target palette size (2, 4, 16, and 256, for INDEXED1-4 respectively.) Otherwise, the least frequently used colors will be dropped.
+
 ### Supported compression options
 
 * NONE (default)
