@@ -201,7 +201,7 @@ public class Core {
         }
       }
       writer.write("};\n\n");
-      paletteDeclaration = "  static Palette palette({VAR}_palette, {PALETTE_SIZE});\n";
+      paletteDeclaration = "  static Palette palette = Palette::ReadOnly({VAR}_palette, {PALETTE_SIZE});\n";
     }
     if (options.getStorage() == Storage.SPIFFS) {
       String template = "const {TYPE}& {VAR}() {\n" +
