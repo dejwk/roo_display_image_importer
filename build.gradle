@@ -38,20 +38,17 @@ dependencies {
     // implementation files('lib/commons-cli-1.4.jar')
     implementation 'info.picocli:picocli:3.8.2'
 
-    testCompileOnly(
-        'junit:junit:4.12'
-    )
-    testImplementation(
-        'org.junit.jupiter:junit-jupiter-api:5.1.0'
-    )
-    testRuntimeOnly(
-        'org.junit.jupiter:junit-jupiter-engine:5.1.0',
-        'org.junit.vintage:junit-vintage-engine:5.1.0'
-    )
+    // JUnit 5 (Jupiter) for tests
+    testImplementation platform('org.junit:junit-bom:5.10.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    
+    // JUnit 4 vintage support if needed for legacy tests
+    testImplementation 'org.junit.vintage:junit-vintage-engine'
+}
 
-    test {
-        useJUnitPlatform()
-    }
+test {
+    useJUnitPlatform()
 }
 
 // In this section you declare where to find the dependencies of your project
