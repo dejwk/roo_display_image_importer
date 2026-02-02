@@ -12,12 +12,18 @@ plugins {
 
     // Apply the application plugin to add support for building an application
     id 'application'
+}
 
-    id 'jacoco'
+// Set Java compatibility
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 // Define the main class for the application
-mainClassName = 'roo.display.imageimporter.ImageImporter'
+application {
+    mainClass = 'roo.display.imageimporter.ImageImporter'
+}
 
 dependencies {
     // This dependency is found on compile classpath of this component and consumers.
@@ -26,9 +32,10 @@ dependencies {
     // Use JUnit test framework
     //testCompile 'junit:junit:4.12'
 
-    implementation files('lib/core.jar')
-    implementation files('lib/pde.jar')
-    implementation files('lib/commons-cli-1.4.jar')
+    // Note: lib JAR files are missing, commenting out for now
+    // implementation files('lib/core.jar')
+    // implementation files('lib/pde.jar')
+    // implementation files('lib/commons-cli-1.4.jar')
     implementation 'info.picocli:picocli:3.8.2'
 
     testCompileOnly(
@@ -49,7 +56,6 @@ dependencies {
 
 // In this section you declare where to find the dependencies of your project
 repositories {
-    // Use jcenter for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    jcenter()
+    // Use Maven Central for resolving dependencies
+    mavenCentral()
 }
