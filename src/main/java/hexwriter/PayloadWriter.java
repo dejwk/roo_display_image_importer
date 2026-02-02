@@ -5,9 +5,7 @@ import java.io.IOException;
 public abstract class PayloadWriter {
   int bytesWritten;
 
-  public PayloadWriter() {
-    this.bytesWritten = 0;
-  }
+  public PayloadWriter() { this.bytesWritten = 0; }
 
   public int getBytesWritten() { return bytesWritten; }
 
@@ -25,7 +23,8 @@ public abstract class PayloadWriter {
   protected abstract void writeByte(int val) throws IOException;
 
   protected void writeBytes(byte[] buffer) throws IOException {
-    for (int i = 0; i < buffer.length; ++i) writeByte(buffer[i]);
+    for (int i = 0; i < buffer.length; ++i)
+      writeByte(buffer[i]);
   }
 
   public void printHex8(int val) throws IOException {
@@ -50,6 +49,7 @@ public abstract class PayloadWriter {
     }
     writeByte(val >>> 8);
     writeByte(val & 0xFF);
+    bytesWritten += 2;
   }
 
   public void printSignedHex16(int val) throws IOException {
@@ -58,6 +58,7 @@ public abstract class PayloadWriter {
     }
     writeByte(val >>> 8);
     writeByte(val & 0xFF);
+    bytesWritten += 2;
   }
 
   public void printHex24(int val) throws IOException {
@@ -67,6 +68,7 @@ public abstract class PayloadWriter {
     writeByte(val >>> 16);
     writeByte((val >>> 8) & 0xFF);
     writeByte(val & 0xFF);
+    bytesWritten += 3;
   }
 
   public void printSignedHex24(int val) throws IOException {
@@ -76,6 +78,7 @@ public abstract class PayloadWriter {
     writeByte(val >>> 16);
     writeByte((val >>> 8) & 0xFF);
     writeByte(val & 0xFF);
+    bytesWritten += 3;
   }
 
   public void printBuffer(final byte[] buffer) throws IOException {
