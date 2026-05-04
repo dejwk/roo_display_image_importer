@@ -125,5 +125,6 @@ exec "$PROJECT_DIR/bin/imageimporter" \
   --compression RLE \
   --fg "Color(0x${fg_color})" \
   --scale "$scale_factor" \
+  --autocrop \
   "$@" \
   "$raw_svg"
