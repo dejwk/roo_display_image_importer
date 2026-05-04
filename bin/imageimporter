@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PROJECT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+APP_DIR="$PROJECT_DIR/build/install/roo_display_image_importer"
+LAUNCHER="$APP_DIR/bin/roo_display_image_importer"
+
+"$PROJECT_DIR/gradlew" --quiet installDist
+
+exec "$LAUNCHER" "$@"
