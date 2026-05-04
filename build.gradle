@@ -37,6 +37,7 @@ dependencies {
     // implementation files('lib/pde.jar')
     // implementation files('lib/commons-cli-1.4.jar')
     implementation 'info.picocli:picocli:3.8.2'
+    implementation 'org.apache.xmlgraphics:batik-transcoder:1.18'
 
     // JUnit 5 (Jupiter) for tests
     testImplementation platform('org.junit:junit-bom:5.10.1')

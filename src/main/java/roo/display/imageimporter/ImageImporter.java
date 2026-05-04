@@ -1,22 +1,19 @@
 package roo.display.imageimporter;
 
-import java.util.concurrent.Callable;
-import picocli.CommandLine;
-import picocli.CommandLine.*;
-
-import java.awt.Dimension;
 import java.awt.BorderLayout;
 import java.awt.Container;
-import java.awt.image.BufferedImage;
+import java.awt.Dimension;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.logging.Logger;
-
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.*;
 import javax.swing.filechooser.FileFilter;
+import picocli.CommandLine;
+import picocli.CommandLine.*;
 import roo.display.imageimporter.ImportOptions.*;
 
 public class ImageImporter extends JFrame {
@@ -39,59 +36,77 @@ public class ImageImporter extends JFrame {
     }
   }
 
-  @Command(description = "Imports specified images to be used with the roo.display library", name = "imageimporter", mixinStandardHelpOptions = true, version = "1.0")
+  @Command(
+      description =
+          "Imports specified images to be used with the roo.display library",
+      name = "imageimporter", mixinStandardHelpOptions = true, version = "1.0")
   private static class Main implements Callable<Void> {
-    @Option(names = { "-e", "--encoding" }, description = "color encoding")
+    @Option(names = {"-e", "--encoding"}, description = "color encoding")
     Encoding encoding = Encoding.ARGB8888;
 
-    @Option(names = { "-c", "--compression" }, description = "compression type")
+    @Option(names = {"-c", "--compression"}, description = "compression type")
     Compression compression = Compression.NONE;
 
-    @Option(names = { "-s", "--storage" }, description = "where to store image data")
+    @Option(names = {"-s", "--storage"},
+            description = "where to store image data")
     Storage storage = Storage.PROGMEM;
 
-    @Option(names = { "--fg" }, description = "foreground color for monochrome and Alpha-only data")
+    @Option(names = {"--fg"},
+            description = "foreground color for monochrome and Alpha-only data")
     String fgColor;
 
-    @Option(names = { "--bg" }, description = "background color for monochrome data")
+    @Option(names = {"--bg"},
+            description = "background color for monochrome data")
     String bgColor;
 
-    @Option(names = { "--output-dir" }, description = "where to place resulting image files. Defaults to cwd.")
+    @Option(names = {"--output-dir"},
+            description =
+                "where to place resulting image files. Defaults to cwd.")
     File outputDir;
 
-    @Option(names = { "-o",
-        "--output-name" }, description = "if set, all images will be generated in a single file by that name. " +
-            "Otherwise, each image goes to a separate file.")
+    @Option(names = {"-o", "--output-name"},
+            description = "if set, all images will be generated in a single " +
+                          "file by that name. "
+                          + "Otherwise, each image goes to a separate file.")
     String outputName;
 
-    @Option(names = { "--input-dir" }, description = "Where to look for input files. Defaults to cwd.")
+    @Option(names = {"--input-dir"},
+            description = "Where to look for input files. Defaults to cwd.")
     File inputDir;
 
-    @Option(names = {
-        "--output-header-dir" }, description = "where to place resulting header files. Defaults to output-dir")
+    @Option(names = {"--output-header-dir"},
+            description =
+                "where to place resulting header files. Defaults to output-dir")
     File outputHeaderDir;
 
-    @Option(names = {
-        "--output-payload-dir" }, description = "where to place resulting SPIFFS data files. Defaults to output-dir")
+    @Option(names = {"--output-payload-dir"},
+            description = "where to place resulting SPIFFS data files. " +
+                          "Defaults to output-dir")
     File outputPayloadDir;
 
-    @Option(names = {
-        "--autocrop" }, arity = "0", defaultValue = "true", description = "if true, crops content to visible.")
+    @Option(names = {"--autocrop"}, arity = "0", defaultValue = "true",
+            description = "if true, crops content to visible.")
     Boolean autoCrop = true;
 
-    @Parameters(arity = "0..*", paramLabel = "FILE", description = "File(s) to process.")
+    @Parameters(arity = "0..*", paramLabel = "FILE",
+                description = "File(s) to process.")
     private File[] inputFiles;
 
     @Override
     public Void call() throws Exception {
       if (inputFiles == null || inputFiles.length == 0) {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        ImageImporter importer = new ImageImporter(encoding, compression, storage, outputDir);
+        ImageImporter importer =
+            new ImageImporter(encoding, compression, storage, outputDir);
         importer.init();
         importer.setVisible(true);
       } else {
-        ImportOptions options = (new ImportOptions()).setEncoding(encoding).setStorage(storage)
-            .setCompression(compression).setOutputDirectory(outputDir).setAutoCrop(autoCrop);
+        ImportOptions options = (new ImportOptions())
+                                    .setEncoding(encoding)
+                                    .setStorage(storage)
+                                    .setCompression(compression)
+                                    .setOutputDirectory(outputDir)
+                                    .setAutoCrop(autoCrop);
         if (bgColor != null) {
           options.setBgColor(bgColor);
         }
@@ -109,8 +124,9 @@ public class ImageImporter extends JFrame {
           // Each image goes to a separate file.
           for (File input : inputFiles) {
             File absoluteInput = openFile(inputDir, input);
-            String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-            BufferedImage image = ImageIO.read(absoluteInput);
+            String name = ImportOptions.getRecommendedNameFromInputFilename(
+                absoluteInput.getName());
+            BufferedImage image = ImageLoader.load(absoluteInput);
             Core core = new Core(options, name);
             core.write(name, image);
             core.close();
@@ -126,8 +142,9 @@ public class ImageImporter extends JFrame {
               core.writeSeparator();
             }
             File absoluteInput = openFile(inputDir, input);
-            String name = ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-            BufferedImage image = ImageIO.read(absoluteInput);
+            String name = ImportOptions.getRecommendedNameFromInputFilename(
+                absoluteInput.getName());
+            BufferedImage image = ImageLoader.load(absoluteInput);
             core.write(name, image);
           }
           core.close();
@@ -139,7 +156,8 @@ public class ImageImporter extends JFrame {
 
   // Helper.
   private static File openFile(File inputDir, File input) throws IOException {
-    File absoluteInput = input.isAbsolute() ? input : new File(inputDir, input.getPath());
+    File absoluteInput =
+        input.isAbsolute() ? input : new File(inputDir, input.getPath());
     Logger.getGlobal().info("Loading file: " + absoluteInput.getAbsolutePath());
     if (!absoluteInput.exists()) {
       throw new FileNotFoundException(absoluteInput.getAbsolutePath());
@@ -150,7 +168,8 @@ public class ImageImporter extends JFrame {
     return absoluteInput;
   }
 
-  public ImageImporter(Encoding encoding, Compression compression, Storage storage, File currentDirectory) {
+  public ImageImporter(Encoding encoding, Compression compression,
+                       Storage storage, File currentDirectory) {
     super("roo_display Image Importer");
     this.encoding = encoding;
     this.compression = compression;
@@ -183,7 +202,8 @@ public class ImageImporter extends JFrame {
     public EncodingOption(Encoding encoding) {
       super(encoding.description);
       this.encoding = encoding;
-      putValue(AbstractAction.SELECTED_KEY, encoding == ImageImporter.this.encoding);
+      putValue(AbstractAction.SELECTED_KEY,
+               encoding == ImageImporter.this.encoding);
     }
 
     @Override
@@ -200,17 +220,13 @@ public class ImageImporter extends JFrame {
     JMenuItem oMenuItem = new JMenuItem("Open");
     oMenuItem.setMnemonic(KeyEvent.VK_O);
     oMenuItem.setToolTipText("Open image file");
-    oMenuItem.addActionListener((ActionEvent event) -> {
-      openImage();
-    });
+    oMenuItem.addActionListener((ActionEvent event) -> { openImage(); });
     file.add(oMenuItem);
 
     sMenuItem = new JMenuItem("Save");
     sMenuItem.setMnemonic(KeyEvent.VK_S);
     sMenuItem.setToolTipText("Save image file for roo_display");
-    sMenuItem.addActionListener((ActionEvent event) -> {
-      saveImage();
-    });
+    sMenuItem.addActionListener((ActionEvent event) -> { saveImage(); });
     sMenuItem.setEnabled(false);
     // sMenuItem.setModel(new DefaultButtonModel() {
     // public boolean isEnabled() { return ImageImporter.this.image != null; }
@@ -221,9 +237,7 @@ public class ImageImporter extends JFrame {
     JMenuItem eMenuItem = new JMenuItem("Exit");
     eMenuItem.setMnemonic(KeyEvent.VK_E);
     eMenuItem.setToolTipText("Exit application");
-    eMenuItem.addActionListener((ActionEvent event) -> {
-      System.exit(0);
-    });
+    eMenuItem.addActionListener((ActionEvent event) -> { System.exit(0); });
     file.add(eMenuItem);
 
     menubar.add(file);
@@ -244,15 +258,18 @@ public class ImageImporter extends JFrame {
     // group.add(new JRadioButtonMenuItem(
     // new EncodingOption(Encoding.RGB565_ALPHA4)));
 
-    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.GRAYSCALE8)));
+    group.add(
+        new JRadioButtonMenuItem(new EncodingOption(Encoding.GRAYSCALE8)));
 
-    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.GRAYSCALE4)));
+    group.add(
+        new JRadioButtonMenuItem(new EncodingOption(Encoding.GRAYSCALE4)));
 
     group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.ALPHA8)));
 
     group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.ALPHA4)));
 
-    group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.MONOCHROME)));
+    group.add(
+        new JRadioButtonMenuItem(new EncodingOption(Encoding.MONOCHROME)));
 
     group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.INDEXED1)));
 
@@ -262,7 +279,8 @@ public class ImageImporter extends JFrame {
 
     group.add(new JRadioButtonMenuItem(new EncodingOption(Encoding.INDEXED8)));
 
-    for (Enumeration<AbstractButton> options = group.getElements(); options.hasMoreElements();) {
+    for (Enumeration<AbstractButton> options = group.getElements();
+         options.hasMoreElements();) {
       format.add(options.nextElement());
     }
 
@@ -286,7 +304,8 @@ public class ImageImporter extends JFrame {
   }
 
   private void openImage() {
-    FileFilter imageFilter = new FileNameExtensionFilter("Image files", ImageIO.getReaderFileSuffixes());
+    FileFilter imageFilter = new FileNameExtensionFilter(
+        "Image files", ImageLoader.getSupportedFileSuffixes());
     JFileChooser fc = new JFileChooser();
     fc.addChoosableFileFilter(imageFilter);
     fc.setAcceptAllFileFilterUsed(false);
@@ -301,14 +320,15 @@ public class ImageImporter extends JFrame {
       currentDirectory = file.getParentFile();
     }
     try {
-      image = ImageIO.read(file);
+      image = ImageLoader.load(file);
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());
       return;
     }
 
     if (image == null) {
-      Logger.getGlobal().severe("Unsupported or unreadable image file: " + file);
+      Logger.getGlobal().severe("Unsupported or unreadable image file: " +
+                                file);
       return;
     }
 
@@ -333,9 +353,14 @@ public class ImageImporter extends JFrame {
       return;
     }
 
-    ImportOptions options = new ImportOptions().initFromInput(inputFile).setStorage(storage).setEncoding(encoding)
-        .setCompression(compression).setAutoCrop(autoCrop);
-    String name = ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
+    ImportOptions options = new ImportOptions()
+                                .initFromInput(inputFile)
+                                .setStorage(storage)
+                                .setEncoding(encoding)
+                                .setCompression(compression)
+                                .setAutoCrop(autoCrop);
+    String name =
+        ImportOptions.getRecommendedNameFromInputFilename(inputFile.getName());
 
     try {
       Core core = new Core(options, name);

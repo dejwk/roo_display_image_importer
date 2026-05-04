@@ -39,6 +39,16 @@ Imports specified images to be used with the roo.display library
   -V, --version             Print version information and exit.
 ```
 
+The importer also supports SVG inputs in both the UI and CLI.
+
+For Material Symbols from Google Fonts, use `bin/import-google-symbol`. It accepts a Google Fonts icon URL, downloads the matching SVG asset, and forwards it to the importer with pictogram-friendly defaults:
+
+```sh
+bin/import-google-symbol 'https://fonts.google.com/icons?icon.category=Home&selected=Material+Symbols+Outlined:arming_countdown:FILL@0;wght@0;GRAD@0;opsz@20&icon.size=20&icon.color=%23000000&icon.platform=web&icon.set=Material+Symbols'
+```
+
+The helper defaults to `ALPHA4` plus `RLE`, derives `--fg` from the Google Fonts URL, and forwards any extra arguments to `bin/imageimporter` so you can still set output directories, names, storage, or override the defaults.
+
 ### Supported encodings
 
 * ARGB8888
