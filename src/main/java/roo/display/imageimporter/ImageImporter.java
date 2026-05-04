@@ -81,7 +81,7 @@ public class ImageImporter extends JFrame {
     Boolean autoCrop = true;
 
     @Option(names = {"--scale"}, defaultValue = "1.0",
-      description = "scale factor for vector inputs such as SVG. Ignored for raster inputs.")
+        description = "scale factor for vector inputs such as SVG. Ignored for raster inputs.")
     Double scale = 1.0;
 
     @Parameters(arity = "0..*", paramLabel = "FILE", description = "File(s) to process.")

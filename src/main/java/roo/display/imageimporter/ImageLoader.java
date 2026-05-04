@@ -35,8 +35,7 @@ final class ImageLoader {
     }
 
     if (scale != 1.0) {
-      Logger.getGlobal().warning(
-          "Ignoring --scale for raster input: " + input.getAbsolutePath());
+      Logger.getGlobal().warning("Ignoring --scale for raster input: " + input.getAbsolutePath());
     }
 
     BufferedImage image = ImageIO.read(input);
@@ -82,8 +81,7 @@ final class ImageLoader {
     try (InputStream stream = new BufferedInputStream(new FileInputStream(input))) {
       BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
       if (baseSize != null) {
-        transcoder.addTranscodingHint(
-            SVGAbstractTranscoder.KEY_WIDTH, baseSize[0] * (float) scale);
+        transcoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, baseSize[0] * (float) scale);
         transcoder.addTranscodingHint(
             SVGAbstractTranscoder.KEY_HEIGHT, baseSize[1] * (float) scale);
       }

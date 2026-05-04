@@ -1,0 +1,129 @@
+#!/usr/bin/env sh
+
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PROJECT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+
+usage() {
+  cat <<'EOF'
+Usage: import-google-symbol GOOGLE_FONTS_ICON_URL [imageimporter args...]
+
+Downloads a Material Symbol SVG from Google Fonts, normalizes it to the
+requested icon size, and imports it with sensible pictogram defaults.
+
+Defaults passed to imageimporter:
+  --encoding ALPHA4
+  --compression RLE
+  --fg Color(0xFFRRGGBB) from the Google Fonts URL
+
+Any additional arguments are forwarded to bin/imageimporter and may override
+those defaults.
+EOF
+}
+
+if [ "$#" -lt 1 ]; then
+  usage >&2
+  exit 1
+fi
+
+url=$1
+shift
+
+extract_param() {
+  printf '%s\n' "$url" | sed -n "s/.*[?&]$1=\([^&]*\).*/\1/p"
+}
+
+selected=$(extract_param 'selected')
+requested_size=$(extract_param 'icon\.size')
+color=$(extract_param 'icon\.color')
+
+if [ -z "$selected" ]; then
+  echo "Could not parse the selected icon from the Google Fonts URL." >&2
+  exit 1
+fi
+
+if [ -z "$requested_size" ]; then
+  requested_size=24
+fi
+
+if [ -z "$color" ]; then
+  color=000000
+fi
+
+color=$(printf '%s' "$color" | sed 's/^%23//; s/^#//')
+case "$color" in
+  [0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f])
+    fg_color="FF$(printf '%s' "$color" | tr '[:lower:]' '[:upper:]')"
+    ;;
+  [0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f])
+    upper_color=$(printf '%s' "$color" | tr '[:lower:]' '[:upper:]')
+    fg_color="$upper_color"
+    ;;
+  *)
+    echo "Unsupported icon color '$color'. Expected RRGGBB or AARRGGBB." >&2
+    exit 1
+    ;;
+esac
+
+family=$(printf '%s' "$selected" | cut -d: -f1 | tr -d '+' | tr '[:upper:]' '[:lower:]')
+icon_name=$(printf '%s' "$selected" | cut -d: -f2)
+fill=$(printf '%s' "$selected" | sed -n 's/.*FILL@\([0-9]\+\).*/\1/p')
+weight=$(printf '%s' "$selected" | sed -n 's/.*wght@\([0-9]\+\).*/\1/p')
+
+if [ -z "$icon_name" ] || [ -z "$family" ]; then
+  echo "Could not resolve the icon family or icon name from the Google Fonts URL." >&2
+  exit 1
+fi
+
+variant=default
+if [ "${fill:-0}" = "1" ]; then
+  variant=fill1
+elif [ -n "${weight:-}" ] && [ "$weight" -ge 700 ]; then
+  variant=wght700
+fi
+
+if [ "${fill:-0}" = "1" ] && [ -n "${weight:-}" ] && [ "$weight" -ge 700 ]; then
+  echo "Warning: combined fill and weight variants are not exposed as a single SVG asset; using fill1." >&2
+fi
+
+choose_source_size() {
+  requested=$1
+  best_size=20
+  best_diff=999999
+  for candidate in 20 24 40 48; do
+    diff=$((candidate - requested))
+    if [ "$diff" -lt 0 ]; then
+      diff=$((diff * -1))
+    fi
+    if [ "$diff" -lt "$best_diff" ] || { [ "$diff" -eq "$best_diff" ] && [ "$candidate" -gt "$best_size" ]; }; then
+      best_size=$candidate
+      best_diff=$diff
+    fi
+  done
+  printf '%s\n' "$best_size"
+}
+
+source_size=$(choose_source_size "$requested_size")
+
+tmp_dir=$(mktemp -d)
+trap 'rm -rf "$tmp_dir"' EXIT INT TERM HUP
+
+raw_svg="$tmp_dir/$icon_name.svg"
+svg_url="https://fonts.gstatic.com/s/i/short-term/release/$family/$icon_name/$variant/${source_size}px.svg"
+
+curl -fsSL "$svg_url" -o "$raw_svg"
+
+scale_factor=$(awk "BEGIN { printf \"%.12g\", $requested_size / $source_size }")
+
+if [ "$source_size" != "$requested_size" ]; then
+  echo "Using ${source_size}px Google SVG asset and scaling it to ${requested_size}px." >&2
+fi
+
+exec "$PROJECT_DIR/bin/imageimporter" \
+  --encoding ALPHA4 \
+  --compression RLE \
+  --fg "Color(0x${fg_color})" \
+  --scale "$scale_factor" \
+  "$@" \
+  "$raw_svg"
