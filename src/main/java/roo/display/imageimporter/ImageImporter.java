@@ -291,19 +291,28 @@ public class ImageImporter extends JFrame {
     fc.addChoosableFileFilter(imageFilter);
     fc.setAcceptAllFileFilterUsed(false);
     int returnVal = fc.showDialog(this, "Open image");
-    if (returnVal == JFileChooser.APPROVE_OPTION) {
-      File file = fc.getSelectedFile();
-      inputFile = file;
-      if (currentDirectory == null) {
-        currentDirectory = file.getParentFile();
-      }
-      try {
-        image = ImageIO.read(file);
-        imageLabel.setIcon(new ImageIcon(image));
-      } catch (IOException e) {
-        Logger.getGlobal().severe(e.getMessage());
-      }
+    if (returnVal != JFileChooser.APPROVE_OPTION) {
+      return;
     }
+
+    File file = fc.getSelectedFile();
+    inputFile = file;
+    if (currentDirectory == null) {
+      currentDirectory = file.getParentFile();
+    }
+    try {
+      image = ImageIO.read(file);
+    } catch (IOException e) {
+      Logger.getGlobal().severe(e.getMessage());
+      return;
+    }
+
+    if (image == null) {
+      Logger.getGlobal().severe("Unsupported or unreadable image file: " + file);
+      return;
+    }
+
+    imageLabel.setIcon(new ImageIcon(image));
     colorPalette.clear();
     for (int i = 0; i < image.getHeight(); ++i) {
       for (int j = 0; j < image.getWidth(); ++j) {
