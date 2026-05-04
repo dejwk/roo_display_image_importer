@@ -289,7 +289,8 @@ public class Core {
             : prgmem ? "{1}ProgMemRaster<{1}Grayscale4>"
                      : "{1}SimpleImage<{0}, {1}Grayscale4>";
       case ALPHA4:
-        return rle   ? "{1}RleImage4bppxBiased<{1}Alpha4, {0}>"
+        return rle   ? prgmem ? "{1}Pictogram"
+                              : "{1}RleImage4bppxBiased<{1}Alpha4, {0}>"
             : prgmem ? "{1}ProgMemRaster<{1}Alpha4>"
                      : "{1}SimpleImage<{0}, {1}Alpha4>";
       case INDEXED1:
