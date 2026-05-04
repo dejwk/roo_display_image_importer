@@ -65,8 +65,8 @@ public class ImageImporter extends JFrame {
     File outputDir;
 
     @Option(names = {"-o", "--output-name"},
-            description = "if set, all images will be generated in a single " +
-                          "file by that name. "
+            description = "if set, all images will be generated in a single "
+                          + "file by that name. "
                           + "Otherwise, each image goes to a separate file.")
     String outputName;
 
@@ -80,8 +80,8 @@ public class ImageImporter extends JFrame {
     File outputHeaderDir;
 
     @Option(names = {"--output-payload-dir"},
-            description = "where to place resulting SPIFFS data files. " +
-                          "Defaults to output-dir")
+            description = "where to place resulting SPIFFS data files. "
+                          + "Defaults to output-dir")
     File outputPayloadDir;
 
     @Option(names = {"--autocrop"}, arity = "0", defaultValue = "true",

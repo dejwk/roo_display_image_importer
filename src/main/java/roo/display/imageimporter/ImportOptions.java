@@ -24,9 +24,7 @@ public class ImportOptions {
 
     public final String description;
 
-    private Encoding(String description) {
-      this.description = description;
-    }
+    private Encoding(String description) { this.description = description; }
   }
 
   public enum Storage {
@@ -35,9 +33,7 @@ public class ImportOptions {
 
     public final String description;
 
-    private Storage(String description) {
-      this.description = description;
-    }
+    private Storage(String description) { this.description = description; }
   }
 
   public enum Compression {
@@ -46,9 +42,7 @@ public class ImportOptions {
 
     public final String description;
 
-    private Compression(String description) {
-      this.description = description;
-    }
+    private Compression(String description) { this.description = description; }
   }
 
   private Storage storage;
@@ -69,39 +63,23 @@ public class ImportOptions {
     compression = Compression.NONE;
   }
 
-  public Storage getStorage() {
-    return storage;
-  }
+  public Storage getStorage() { return storage; }
 
-  public Encoding getEncoding() {
-    return encoding;
-  }
+  public Encoding getEncoding() { return encoding; }
 
-  public Compression getCompression() {
-    return compression;
-  }
+  public Compression getCompression() { return compression; }
 
-  public boolean getAutoCrop() {
-    return autoCrop;
-  }
+  public boolean getAutoCrop() { return autoCrop; }
 
   // public String getName() { return name; }
   // public String getResourceName() { return resourceName; }
-  public File getOutputHeaderDirectory() {
-    return outputHeaderDirectory;
-  }
+  public File getOutputHeaderDirectory() { return outputHeaderDirectory; }
 
-  public File getOutputPayloadDirectory() {
-    return outputPayloadDirectory;
-  }
+  public File getOutputPayloadDirectory() { return outputPayloadDirectory; }
 
-  public String getBgColor() {
-    return bgColor;
-  }
+  public String getBgColor() { return bgColor; }
 
-  public String getFgColor() {
-    return fgColor;
-  }
+  public String getFgColor() { return fgColor; }
 
   public ImportOptions initFromInput(File input) {
     // setName(getRecommendedNameFromInputFilename(input.getName()));

@@ -10,17 +10,14 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
-
 import javax.imageio.ImageIO;
-
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.ImageTranscoder;
 
 final class ImageLoader {
-  private ImageLoader() {
-  }
+  private ImageLoader() {}
 
   public static BufferedImage load(File input) throws IOException {
     if (isSvg(input)) {
@@ -29,7 +26,8 @@ final class ImageLoader {
 
     BufferedImage image = ImageIO.read(input);
     if (image == null) {
-      throw new IOException("Unsupported or unreadable image file: " + input.getAbsolutePath());
+      throw new IOException("Unsupported or unreadable image file: " +
+                            input.getAbsolutePath());
     }
     return image;
   }
@@ -46,16 +44,19 @@ final class ImageLoader {
   }
 
   private static BufferedImage loadSvg(File input) throws IOException {
-    try (InputStream stream = new BufferedInputStream(new FileInputStream(input))) {
+    try (InputStream stream =
+             new BufferedInputStream(new FileInputStream(input))) {
       BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
       transcoder.transcode(new TranscoderInput(stream), null);
       BufferedImage image = transcoder.getImage();
       if (image == null) {
-        throw new IOException("Unsupported or unreadable SVG file: " + input.getAbsolutePath());
+        throw new IOException("Unsupported or unreadable SVG file: " +
+                              input.getAbsolutePath());
       }
       return image;
     } catch (TranscoderException e) {
-      throw new IOException("Failed to render SVG file: " + input.getAbsolutePath(), e);
+      throw new IOException(
+          "Failed to render SVG file: " + input.getAbsolutePath(), e);
     }
   }
 
@@ -72,8 +73,6 @@ final class ImageLoader {
       this.image = image;
     }
 
-    public BufferedImage getImage() {
-      return image;
-    }
+    public BufferedImage getImage() { return image; }
   }
 }
