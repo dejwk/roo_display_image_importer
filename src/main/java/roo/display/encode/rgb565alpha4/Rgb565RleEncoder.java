@@ -88,8 +88,8 @@ public class Rgb565RleEncoder extends Encoder {
         os.write((value >> 8) & 0xFF);
         os.write(value & 0xFF);
       } else if (value != checkValue) {
-        throw new RuntimeException(
-            "After emitting " + i + " out of " + count + " values: saw " + value + " while expected " + checkValue);
+        throw new RuntimeException("After emitting " + i + " out of " + count + " values: saw "
+            + value + " while expected " + checkValue);
       }
     }
   }

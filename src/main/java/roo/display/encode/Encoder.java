@@ -11,15 +11,23 @@ public abstract class Encoder {
     this.properties = new Properties();
   }
 
-  public String getProperty(String key) { return properties.getProperty(key); }
+  public String getProperty(String key) {
+    return properties.getProperty(key);
+  }
 
-  public Properties getProperties() { return properties; }
+  public Properties getProperties() {
+    return properties;
+  }
 
   public abstract void encodePixel(int pixel) throws IOException;
 
-  public boolean isPixelVisible(int pixel) { return true; }
+  public boolean isPixelVisible(int pixel) {
+    return true;
+  }
 
-  public List<Integer> getPalette() { return List.of(); }
+  public List<Integer> getPalette() {
+    return List.of();
+  }
 
   public abstract void close() throws IOException;
 }

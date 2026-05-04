@@ -3,7 +3,6 @@ package roo.display.imageimporter;
 import java.io.File;
 
 public class ImportOptions {
-
   public enum Encoding {
     ARGB8888("ARGB 8888"),
     ARGB6666("ARGB 6666"),

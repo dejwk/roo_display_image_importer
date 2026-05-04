@@ -1,8 +1,8 @@
 package roo.display.encode.rgb565;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import roo.display.encode.*;
 
 public class Rgb565TransparencyCapturer extends Encoder {
@@ -11,7 +11,7 @@ public class Rgb565TransparencyCapturer extends Encoder {
   boolean hasTransparency;
   Encoder delegate;
 
-  public Rgb565TransparencyCapturer(Encoder delegate) { 
+  public Rgb565TransparencyCapturer(Encoder delegate) {
     this.delegate = delegate;
     this.buffer = new ArrayList<Integer>();
     this.freq = new int[1 << 16];
@@ -39,7 +39,8 @@ public class Rgb565TransparencyCapturer extends Encoder {
       if (freq[i] < minFreq) {
         minFreqColor = i;
         minFreq = freq[i];
-        if (minFreq == 0) break;  // Found a winner!
+        if (minFreq == 0)
+          break; // Found a winner!
       }
     }
     if (minFreq == 0) {
@@ -58,10 +59,9 @@ public class Rgb565TransparencyCapturer extends Encoder {
     }
 
     if (hasTransparency) {
-        // Use the least frequent color (hopefully, unused color) as
+      // Use the least frequent color (hopefully, unused color) as
       // transparent color.
-      properties.put("transparentColor", 
-                     String.valueOf(encode565(minFreqColor)));
+      properties.put("transparentColor", String.valueOf(encode565(minFreqColor)));
     }
     for (int pixel : buffer) {
       if ((pixel >>> 24) <= 0x7F) {
@@ -75,8 +75,7 @@ public class Rgb565TransparencyCapturer extends Encoder {
   }
 
   private static int encode565(int pixel) {
-    return ((pixel >> 8) & 0xF800) | ((pixel >> 5) & 0x07E0) |
-           ((pixel >> 3) & 0x1F);
+    return ((pixel >> 8) & 0xF800) | ((pixel >> 5) & 0x07E0) | ((pixel >> 3) & 0x1F);
   }
 
   private static int decode565(int encoded) {

@@ -1,7 +1,7 @@
 package roo.display.encode.alpha4;
 
 public class RleAcummulator {
-  //public interface Consumer { void addRun(int value, int count); }
+  // public interface Consumer { void addRun(int value, int count); }
 
   public class Entry {
     public final int value;
@@ -15,16 +15,18 @@ public class RleAcummulator {
     public boolean equals(Object other) {
       if (!(other instanceof Entry))
         return false;
-      Entry otherEntry = (Entry)other;
+      Entry otherEntry = (Entry) other;
       return otherEntry.value == value && otherEntry.count == count;
     }
 
-    public int hashCode() { return value * 371 + count; }
+    public int hashCode() {
+      return value * 371 + count;
+    }
   }
 
   int currentValue;
   int currentCount;
-  //final Consumer consumer;
+  // final Consumer consumer;
 
   public RleAcummulator() {
     // this.consumer = consumer;

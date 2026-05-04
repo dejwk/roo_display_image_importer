@@ -24,7 +24,6 @@ import roo.display.encode.alpha4.RleAcummulator.Entry;
  * </ul>
  */
 public class Alpha4AntiAliasRleEncoder extends Encoder {
-
   private SubByteWriter os;
   ArrayDeque<Entry> deque;
   RleAcummulator acummulator;
@@ -91,10 +90,7 @@ public class Alpha4AntiAliasRleEncoder extends Encoder {
       // that runs of 5 (representing things like anti-aliased horizontal lines)
       // are often neighboring other runs of 5, so it is likely a net win to
       // RLE-encode any run of 5.
-      if (
-        entry.count >= 5 ||
-        ((entry.value == 0x0 || entry.value == 0xF) && entry.count >= 2)
-      ) {
+      if (entry.count >= 5 || ((entry.value == 0x0 || entry.value == 0xF) && entry.count >= 2)) {
         // We need to emit the acummulated stuff.
         emitDeque();
         emitRun(entry.value, entry.count);
@@ -111,20 +107,18 @@ public class Alpha4AntiAliasRleEncoder extends Encoder {
 
   private void emitVarInt(int value) throws IOException {
     if (value < 0) {
-      throw new IllegalArgumentException(
-        "Varint can't be negative; got: " + value
-      );
+      throw new IllegalArgumentException("Varint can't be negative; got: " + value);
     }
     emitVarIntRecursive(value, false);
   }
 
-  private void emitVarIntRecursive(int value, boolean carryOver)
-    throws IOException {
+  private void emitVarIntRecursive(int value, boolean carryOver) throws IOException {
     if (value >= 8) {
       emitVarIntRecursive(value / 8, true);
       value %= 8;
     }
-    if (carryOver) value |= 8;
+    if (carryOver)
+      value |= 8;
     os.write(value);
   }
 
@@ -135,9 +129,7 @@ public class Alpha4AntiAliasRleEncoder extends Encoder {
    */
   private void emitGenericRun(int value, int count) throws IOException {
     if (count < 4) {
-      throw new IllegalArgumentException(
-        "Too low count: " + count + "; expecting at least 4"
-      );
+      throw new IllegalArgumentException("Too low count: " + count + "; expecting at least 4");
     }
     os.write(0x8);
     os.write(0x0);
@@ -158,7 +150,8 @@ public class Alpha4AntiAliasRleEncoder extends Encoder {
         os.write(0x7);
         count -= 7;
       }
-      if (count > 0) os.write(count);
+      if (count > 0)
+        os.write(count);
       return;
     }
     if (value == 0xF) {
@@ -167,7 +160,8 @@ public class Alpha4AntiAliasRleEncoder extends Encoder {
         os.write(0xF);
         count -= 7;
       }
-      if (count > 0) os.write(count | 0x8);
+      if (count > 0)
+        os.write(count | 0x8);
       return;
     }
     // We have an in-between value. Check special cases.
@@ -194,9 +188,7 @@ public class Alpha4AntiAliasRleEncoder extends Encoder {
 
   private void emitAbsolute(int entryCount) throws IOException {
     if (entryCount > deque.size()) {
-      throw new IllegalArgumentException(
-        "Out of bounds: " + entryCount + ", vs " + deque.size()
-      );
+      throw new IllegalArgumentException("Out of bounds: " + entryCount + ", vs " + deque.size());
     }
     Iterator<Entry> itr = deque.iterator();
     int sumLengths = 0;

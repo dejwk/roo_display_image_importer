@@ -1,8 +1,7 @@
 package hexwriter;
 
-import java.io.Writer;
-
 import java.io.IOException;
+import java.io.Writer;
 
 public class HexWriter extends PayloadWriter {
   private final Writer writer;

@@ -1,11 +1,10 @@
 package roo.display.encode.argb8888;
 
-import roo.display.encode.*;
 import java.io.OutputStream;
+import roo.display.encode.*;
 
 public class Argb8888EncoderFactory implements EncoderFactory {
-  public Argb8888EncoderFactory() {
-  }
+  public Argb8888EncoderFactory() {}
 
   public Encoder create(boolean rle, OutputStream os) {
     return MultiByteEncoderFactory.create(rle, new PixelEncoder() {

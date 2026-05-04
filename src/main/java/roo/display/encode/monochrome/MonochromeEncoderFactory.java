@@ -1,11 +1,10 @@
 package roo.display.encode.monochrome;
 
-import roo.display.encode.*;
 import java.io.OutputStream;
+import roo.display.encode.*;
 
 public class MonochromeEncoderFactory implements EncoderFactory {
-  public MonochromeEncoderFactory() {
-  }
+  public MonochromeEncoderFactory() {}
 
   public Encoder create(boolean rle, OutputStream os) {
     if (rle) {

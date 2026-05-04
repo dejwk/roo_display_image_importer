@@ -1,18 +1,17 @@
 package roo.display.encode.grayscale8;
 
-import roo.display.encode.*;
 import java.io.OutputStream;
+import roo.display.encode.*;
 
 public class Grayscale8EncoderFactory implements EncoderFactory {
-  public Grayscale8EncoderFactory() {
-  }
+  public Grayscale8EncoderFactory() {}
 
   public Encoder create(boolean rle, OutputStream os) {
     return MultiByteEncoderFactory.create(rle, new PixelEncoder() {
       public int bitsPerPixel() {
         return 8;
       }
-    
+
       public int encodePixel(int argb) {
         // Using fast approximate formula;
         // See https://stackoverflow.com/questions/596216

@@ -1,7 +1,7 @@
 package roo.display.encode.indexed;
 
-import roo.display.encode.*;
 import java.io.OutputStream;
+import roo.display.encode.*;
 
 public class IndexedEncoderFactory implements EncoderFactory {
   private int bits;

@@ -2,9 +2,9 @@ package roo.display.encode.monochrome;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import roo.display.encode.*;
 import java.util.*;
 import java.util.Map.Entry;
+import roo.display.encode.*;
 
 public class MonochromeEncoder extends Encoder {
   private SubByteWriter os;

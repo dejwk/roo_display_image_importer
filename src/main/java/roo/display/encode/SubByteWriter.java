@@ -11,21 +11,20 @@ public class SubByteWriter {
   int pos;
   int buffer;
 
-
   public SubByteWriter(OutputStream os, int bits, boolean msb) {
-      if (bits != 1 && bits != 2 && bits != 4) {
-        throw new IllegalArgumentException("Bits not adds up to a byte");
-      }
-      this.os = os;
-      this.bits = bits;
-      this.msb = msb;
-      pos = 0;
-      buffer = 0;
+    if (bits != 1 && bits != 2 && bits != 4) {
+      throw new IllegalArgumentException("Bits not adds up to a byte");
+    }
+    this.os = os;
+    this.bits = bits;
+    this.msb = msb;
+    pos = 0;
+    buffer = 0;
   }
 
   public void write(int data) throws IOException {
     if (data < 0 || data >= (1 << bits)) {
-        throw new IllegalArgumentException();
+      throw new IllegalArgumentException();
     }
     if (msb) {
       buffer <<= bits;
@@ -42,7 +41,9 @@ public class SubByteWriter {
   }
 
   public void close() throws IOException {
-    while (pos != 0) { write(0); }
+    while (pos != 0) {
+      write(0);
+    }
     os.close();
   }
 }

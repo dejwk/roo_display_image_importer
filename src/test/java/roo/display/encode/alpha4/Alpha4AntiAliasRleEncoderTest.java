@@ -1,16 +1,13 @@
 package roo.display.encode.alpha4;
 
-import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayOutputStream;
-
+import java.io.IOException;
 import org.junit.jupiter.api.Test;
-
 import roo.display.encode.Encoder;
 
 class Alpha4AntiAliasRleEncoderTest {
-
   @Test
   void testSingleValues() {
     assertEquals("90", encode("F"));
@@ -111,18 +108,21 @@ class Alpha4AntiAliasRleEncoderTest {
   }
 
   private static int parseHexDigit(char digit) {
-    if (digit >= 'A' && digit <= 'F') return digit - 'A' + 10;
-    if (digit >= 'a' && digit <= 'f') return digit - 'q' + 10;
-    if (digit >= '0' && digit <= '9') return digit - '0';
+    if (digit >= 'A' && digit <= 'F')
+      return digit - 'A' + 10;
+    if (digit >= 'a' && digit <= 'f')
+      return digit - 'q' + 10;
+    if (digit >= '0' && digit <= '9')
+      return digit - '0';
     throw new AssertionError(digit);
   }
 
   private static char toHexDigit(int digit) {
-    return digit >= 10 ? (char)(digit - 10 + 'A') : (char)(digit + '0');
+    return digit >= 10 ? (char) (digit - 10 + 'A') : (char) (digit + '0');
   }
 
   private static char[] byteToString(byte value) {
-    return new char[] { toHexDigit(value >> 4 & 0xF), toHexDigit(value & 0xF) };
+    return new char[] {toHexDigit(value >> 4 & 0xF), toHexDigit(value & 0xF)};
   }
 
   private static String encode(String input) {
@@ -136,7 +136,9 @@ class Alpha4AntiAliasRleEncoderTest {
       encoder.close();
       byte[] result = bos.toByteArray();
       StringBuilder builder = new StringBuilder();
-      for (byte b : result) { builder.append(byteToString(b)); }
+      for (byte b : result) {
+        builder.append(byteToString(b));
+      }
       return builder.toString();
     } catch (IOException e) {
       throw new AssertionError(e);

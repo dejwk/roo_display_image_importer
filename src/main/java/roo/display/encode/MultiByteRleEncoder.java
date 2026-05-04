@@ -74,8 +74,8 @@ public class MultiByteRleEncoder extends Encoder {
         checkValue = value;
         emitPixel(value);
       } else if (value != checkValue) {
-        throw new RuntimeException(
-            "After emitting " + i + " out of " + count + " values: saw " + value + " while expected " + checkValue);
+        throw new RuntimeException("After emitting " + i + " out of " + count + " values: saw "
+            + value + " while expected " + checkValue);
       }
     }
   }

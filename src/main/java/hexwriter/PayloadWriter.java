@@ -5,9 +5,13 @@ import java.io.IOException;
 public abstract class PayloadWriter {
   int bytesWritten;
 
-  public PayloadWriter() { this.bytesWritten = 0; }
+  public PayloadWriter() {
+    this.bytesWritten = 0;
+  }
 
-  public int getBytesWritten() { return bytesWritten; }
+  public int getBytesWritten() {
+    return bytesWritten;
+  }
 
   public void writeDeclaration(String var) throws IOException {}
 
@@ -23,8 +27,7 @@ public abstract class PayloadWriter {
   protected abstract void writeByte(int val) throws IOException;
 
   protected void writeBytes(byte[] buffer) throws IOException {
-    for (int i = 0; i < buffer.length; ++i)
-      writeByte(buffer[i]);
+    for (int i = 0; i < buffer.length; ++i) writeByte(buffer[i]);
   }
 
   public void printHex8(int val) throws IOException {

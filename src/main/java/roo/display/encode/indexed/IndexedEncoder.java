@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 import roo.display.encode.*;
 
 public class IndexedEncoder extends Encoder {
-
   final int bits;
   final boolean msb;
   final boolean rle;
@@ -44,20 +43,13 @@ public class IndexedEncoder extends Encoder {
   }
 
   public void close() throws IOException {
-    List<Map.Entry<Integer, ColorProperties>> top = new ArrayList<>(
-      freq.entrySet()
-    );
-    top.sort(
-      new Comparator<Map.Entry<Integer, ColorProperties>>() {
-        @Override
-        public int compare(
-          Entry<Integer, ColorProperties> o1,
-          Entry<Integer, ColorProperties> o2
-        ) {
-          return o2.getValue().frequency - o1.getValue().frequency;
-        }
+    List<Map.Entry<Integer, ColorProperties>> top = new ArrayList<>(freq.entrySet());
+    top.sort(new Comparator<Map.Entry<Integer, ColorProperties>>() {
+      @Override
+      public int compare(Entry<Integer, ColorProperties> o1, Entry<Integer, ColorProperties> o2) {
+        return o2.getValue().frequency - o1.getValue().frequency;
       }
-    );
+    });
     // Order colors in the palette by descending popularity. If there are too many
     // colors, they get
     // remapped to the most popular color.
@@ -79,26 +71,22 @@ public class IndexedEncoder extends Encoder {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     writeTo(bos);
     byte[] raw = bos.toByteArray();
-    Encoder rleEncoder = MultiByteEncoderFactory.create(
-      true,
-      new PixelEncoder() {
-        @Override
-        public int bitsPerPixel() {
-          return 8;
-        }
+    Encoder rleEncoder = MultiByteEncoderFactory.create(true, new PixelEncoder() {
+      @Override
+      public int bitsPerPixel() {
+        return 8;
+      }
 
-        @Override
-        public int encodePixel(int argb) {
-          return argb;
-        }
+      @Override
+      public int encodePixel(int argb) {
+        return argb;
+      }
 
-        @Override
-        public boolean isPixelVisible(int argb) {
-          return true;
-        }
-      },
-      os
-    );
+      @Override
+      public boolean isPixelVisible(int argb) {
+        return true;
+      }
+    }, os);
     for (byte b : raw) {
       rleEncoder.encodePixel((b));
     }
@@ -130,7 +118,6 @@ public class IndexedEncoder extends Encoder {
   }
 
   private static class ColorProperties {
-
     int frequency;
     int paletteIndex;
   }
