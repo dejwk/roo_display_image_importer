@@ -80,6 +80,10 @@ public class ImageImporter extends JFrame {
         description = "if true, crops content to visible.")
     Boolean autoCrop = true;
 
+    @Option(names = {"--scale"}, defaultValue = "1.0",
+      description = "scale factor for vector inputs such as SVG. Ignored for raster inputs.")
+    Double scale = 1.0;
+
     @Parameters(arity = "0..*", paramLabel = "FILE", description = "File(s) to process.")
     private File[] inputFiles;
 
@@ -116,7 +120,7 @@ public class ImageImporter extends JFrame {
             File absoluteInput = openFile(inputDir, input);
             String name =
                 ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-            BufferedImage image = ImageLoader.load(absoluteInput);
+            BufferedImage image = ImageLoader.load(absoluteInput, scale);
             Core core = new Core(options, name);
             core.write(name, image);
             core.close();
@@ -134,7 +138,7 @@ public class ImageImporter extends JFrame {
             File absoluteInput = openFile(inputDir, input);
             String name =
                 ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-            BufferedImage image = ImageLoader.load(absoluteInput);
+            BufferedImage image = ImageLoader.load(absoluteInput, scale);
             core.write(name, image);
           }
           core.close();
