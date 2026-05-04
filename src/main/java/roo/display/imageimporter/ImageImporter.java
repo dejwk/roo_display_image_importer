@@ -9,7 +9,6 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.*;
 import javax.swing.filechooser.FileFilter;
@@ -59,7 +58,8 @@ public class ImageImporter extends JFrame {
     File outputDir;
 
     @Option(names = {"-o", "--output-name"},
-        description = "if set, all images will be generated in a single file by that name. "
+        description = "if set, all images will be generated in a single "
+            + "file by that name. "
             + "Otherwise, each image goes to a separate file.")
     String outputName;
 
@@ -72,7 +72,8 @@ public class ImageImporter extends JFrame {
     File outputHeaderDir;
 
     @Option(names = {"--output-payload-dir"},
-        description = "where to place resulting SPIFFS data files. Defaults to output-dir")
+        description = "where to place resulting SPIFFS data files. "
+            + "Defaults to output-dir")
     File outputPayloadDir;
 
     @Option(names = {"--autocrop"}, arity = "0", defaultValue = "true",
@@ -115,7 +116,7 @@ public class ImageImporter extends JFrame {
             File absoluteInput = openFile(inputDir, input);
             String name =
                 ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-            BufferedImage image = ImageIO.read(absoluteInput);
+            BufferedImage image = ImageLoader.load(absoluteInput);
             Core core = new Core(options, name);
             core.write(name, image);
             core.close();
@@ -133,7 +134,7 @@ public class ImageImporter extends JFrame {
             File absoluteInput = openFile(inputDir, input);
             String name =
                 ImportOptions.getRecommendedNameFromInputFilename(absoluteInput.getName());
-            BufferedImage image = ImageIO.read(absoluteInput);
+            BufferedImage image = ImageLoader.load(absoluteInput);
             core.write(name, image);
           }
           core.close();
@@ -288,7 +289,7 @@ public class ImageImporter extends JFrame {
 
   private void openImage() {
     FileFilter imageFilter =
-        new FileNameExtensionFilter("Image files", ImageIO.getReaderFileSuffixes());
+        new FileNameExtensionFilter("Image files", ImageLoader.getSupportedFileSuffixes());
     JFileChooser fc = new JFileChooser();
     fc.addChoosableFileFilter(imageFilter);
     fc.setAcceptAllFileFilterUsed(false);
@@ -303,7 +304,7 @@ public class ImageImporter extends JFrame {
       currentDirectory = file.getParentFile();
     }
     try {
-      image = ImageIO.read(file);
+      image = ImageLoader.load(file);
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());
       return;
