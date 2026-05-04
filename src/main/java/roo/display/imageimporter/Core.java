@@ -202,7 +202,7 @@ public class Core {
           + "  static FileResource file(SPIFFS, \"/{DATAFILE}\");\n" + paletteDeclaration
           + "  static {TYPE} value(\n"
           + ("      Box({XMIN}, {YMIN}, {XMAX}, {YMAX}), Box(0, 0, {WIDTH_LESS_1}, "
-             + "{HEIGHT_LESS_1}),\n")
+              + "{HEIGHT_LESS_1}),\n")
           + "      file, {CONSTRUCTOR});\n"
           + "  return value;\n"
           + "}\n";
@@ -215,7 +215,8 @@ public class Core {
               .replace("{CONSTRUCTOR}", getCppEncodingConstructor(options, encoderProperties))
               .replace("{PALETTE_SIZE}", String.valueOf(palette.size())));
     } else {
-      HexWriter hexWriter = new HexWriter(writer);
+      StringWriter dataDeclarationWriter = new StringWriter();
+      HexWriter hexWriter = new HexWriter(dataDeclarationWriter);
       hexWriter.printComment("Image file " + resourceName + " " + image.getWidth() + "x"
           + image.getHeight() + ", " + options.getEncoding().description + ", "
           + (rle ? " RLE, " : "") + encoded.length + " bytes.\n");
@@ -223,16 +224,17 @@ public class Core {
       hexWriter.printBuffer(encoded);
       hexWriter.end();
 
-      String template = "\n"
-          + "const {TYPE}& {VAR}() {\n" + paletteDeclaration + "  static {TYPE} value(\n"
+      String template = "const {TYPE}& {VAR}() {\n"
+          + "{DATA_DECLARATION}\n" + paletteDeclaration + "  static {TYPE} value(\n"
           + ("      Box({XMIN}, {YMIN}, {XMAX}, {YMAX}), Box(0, 0, {WIDTH_LESS_1}, "
-             + "{HEIGHT_LESS_1}),\n")
+              + "{HEIGHT_LESS_1}),\n")
           + "      {VAR}_data, {CONSTRUCTOR});\n"
           + "  return value;\n"
           + "}\n";
 
       writer.write(template.replace("{TYPE}", unqualified_typename)
               .replace("{VAR}", resourceName)
+              .replace("{DATA_DECLARATION}", indentBlock(dataDeclarationWriter.toString(), "  "))
               .replace("{WIDTH_LESS_1}", String.valueOf(image.getWidth() - 1))
               .replace("{HEIGHT_LESS_1}", String.valueOf(image.getHeight() - 1))
               .replace("{XMIN}", String.valueOf(xMin))
@@ -244,6 +246,21 @@ public class Core {
     }
 
     writer.flush();
+  }
+
+  private static String indentBlock(String block, String indent) {
+    String[] lines = block.split("\\n", -1);
+    StringBuilder indented = new StringBuilder();
+    for (int i = 0; i < lines.length; ++i) {
+      if (i > 0) {
+        indented.append('\n');
+      }
+      if (!lines[i].isEmpty()) {
+        indented.append(indent);
+      }
+      indented.append(lines[i]);
+    }
+    return indented.toString();
   }
 
   private static String getCppImageTypeNameForEncoding(ImportOptions options, TypeScoping scoping) {
@@ -289,8 +306,7 @@ public class Core {
             : prgmem ? "{1}ProgMemRaster<{1}Grayscale4>"
                      : "{1}SimpleImage<{0}, {1}Grayscale4>";
       case ALPHA4:
-        return rle   ? prgmem ? "{1}Pictogram"
-                              : "{1}RleImage4bppxBiased<{1}Alpha4, {0}>"
+        return rle   ? prgmem ? "{1}Pictogram" : "{1}RleImage4bppxBiased<{1}Alpha4, {0}>"
             : prgmem ? "{1}ProgMemRaster<{1}Alpha4>"
                      : "{1}SimpleImage<{0}, {1}Alpha4>";
       case INDEXED1:
