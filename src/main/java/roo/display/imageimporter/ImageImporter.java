@@ -153,19 +153,6 @@ public class ImageImporter extends JFrame {
     }
   }
 
-  private static class CppPayloadFormatConverter implements ITypeConverter<CppPayloadFormat> {
-    @Override
-    public CppPayloadFormat convert(String value) {
-      for (CppPayloadFormat format : CppPayloadFormat.values()) {
-        if (format.toString().equals(value) || format.name().equalsIgnoreCase(value)) {
-          return format;
-        }
-      }
-      throw new IllegalArgumentException(
-          "expected one of: byte-list, string-literal-wrapper");
-    }
-  }
-
   // Helper.
   private static File openFile(File inputDir, File input) throws IOException {
     File absoluteInput = input.isAbsolute() ? input : new File(inputDir, input.getPath());
