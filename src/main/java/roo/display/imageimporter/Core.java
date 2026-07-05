@@ -1,6 +1,8 @@
 package roo.display.imageimporter;
 
 import hexwriter.HexWriter;
+import hexwriter.PayloadWriter;
+import hexwriter.StringLiteralPayloadWriter;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.io.BufferedWriter;
@@ -24,6 +26,7 @@ import roo.display.encode.indexed.IndexedEncoderFactory;
 import roo.display.encode.monochrome.MonochromeEncoderFactory;
 import roo.display.encode.rgb565.Rgb565EncoderFactory;
 import roo.display.imageimporter.ImportOptions.Compression;
+import roo.display.imageimporter.ImportOptions.CppPayloadFormat;
 import roo.display.imageimporter.ImportOptions.Encoding;
 import roo.display.imageimporter.ImportOptions.Storage;
 
@@ -92,9 +95,24 @@ public class Core {
     if (options.getStorage() == Storage.SPIFFS) {
       writer.write("#include \"SPIFFS.h\"\n");
     }
+    if (usesStringLiteralPayloadWrapper()) {
+      writer.write("#include <stddef.h>\n");
+      writer.write("#include <stdint.h>\n");
+    }
     writer.write("\n"
         + "using namespace roo_display;\n"
         + "\n");
+    if (usesStringLiteralPayloadWrapper()) {
+      writer.write("template <size_t N>\n");
+      writer.write("struct GeneratedPayload {\n");
+      writer.write("  uint8_t bytes[N];\n\n");
+      writer.write("  constexpr GeneratedPayload(const char (&literal)[N + 1]) : bytes{} {\n");
+      writer.write("    for (size_t i = 0; i < N; ++i) {\n");
+      writer.write("      bytes[i] = static_cast<uint8_t>(literal[i]);\n");
+      writer.write("    }\n");
+      writer.write("  }\n");
+      writer.write("};\n\n");
+    }
     writer.flush();
   }
 
@@ -216,11 +234,11 @@ public class Core {
               .replace("{PALETTE_SIZE}", String.valueOf(palette.size())));
     } else {
       StringWriter dataDeclarationWriter = new StringWriter();
-      HexWriter hexWriter = new HexWriter(dataDeclarationWriter);
+      PayloadWriter hexWriter = createPayloadWriter(dataDeclarationWriter);
       hexWriter.printComment("Image file " + resourceName + " " + image.getWidth() + "x"
           + image.getHeight() + ", " + options.getEncoding().description + ", "
           + (rle ? " RLE, " : "") + encoded.length + " bytes.\n");
-      hexWriter.beginStatic(resourceName + "_data");
+      hexWriter.beginStatic(resourceName + "_data", encoded.length);
       hexWriter.printBuffer(encoded);
       hexWriter.end();
 
@@ -228,13 +246,14 @@ public class Core {
           + "{DATA_DECLARATION}\n" + paletteDeclaration + "  static {TYPE} value(\n"
           + ("      Box({XMIN}, {YMIN}, {XMAX}, {YMAX}), Box(0, 0, {WIDTH_LESS_1}, "
               + "{HEIGHT_LESS_1}),\n")
-          + "      {VAR}_data, {CONSTRUCTOR});\n"
+          + "      {DATA_PTR}, {CONSTRUCTOR});\n"
           + "  return value;\n"
           + "}\n";
 
       writer.write(template.replace("{TYPE}", unqualified_typename)
               .replace("{VAR}", resourceName)
               .replace("{DATA_DECLARATION}", indentBlock(dataDeclarationWriter.toString(), "  "))
+              .replace("{DATA_PTR}", getPayloadPointerExpression(resourceName + "_data"))
               .replace("{WIDTH_LESS_1}", String.valueOf(image.getWidth() - 1))
               .replace("{HEIGHT_LESS_1}", String.valueOf(image.getHeight() - 1))
               .replace("{XMIN}", String.valueOf(xMin))
@@ -246,6 +265,22 @@ public class Core {
     }
 
     writer.flush();
+  }
+
+  private PayloadWriter createPayloadWriter(Writer writer) {
+    if (usesStringLiteralPayloadWrapper()) {
+      return new StringLiteralPayloadWriter(writer);
+    }
+    return new HexWriter(writer);
+  }
+
+  private boolean usesStringLiteralPayloadWrapper() {
+    return options.getStorage() == Storage.PROGMEM
+        && options.getCppPayloadFormat() == CppPayloadFormat.STRING_LITERAL_WRAPPER;
+  }
+
+  private String getPayloadPointerExpression(String dataVar) {
+    return usesStringLiteralPayloadWrapper() ? dataVar + ".bytes" : dataVar;
   }
 
   private static String indentBlock(String block, String indent) {

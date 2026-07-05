@@ -48,6 +48,10 @@ public class ImageImporter extends JFrame {
     @Option(names = {"-s", "--storage"}, description = "where to store image data")
     Storage storage = Storage.PROGMEM;
 
+    @Option(names = {"--cpp-payload-format"}, converter = CppPayloadFormatConverter.class,
+        description = "C++ payload format: ${COMPLETION-CANDIDATES}")
+    CppPayloadFormat cppPayloadFormat = CppPayloadFormat.BYTE_LIST;
+
     @Option(names = {"--fg"}, description = "foreground color for monochrome and Alpha-only data")
     String fgColor;
 
@@ -99,6 +103,7 @@ public class ImageImporter extends JFrame {
                                     .setEncoding(encoding)
                                     .setStorage(storage)
                                     .setCompression(compression)
+                                    .setCppPayloadFormat(cppPayloadFormat)
                                     .setOutputDirectory(outputDir)
                                     .setAutoCrop(autoCrop);
         if (bgColor != null) {
@@ -145,6 +150,19 @@ public class ImageImporter extends JFrame {
         }
       }
       return null;
+    }
+  }
+
+  private static class CppPayloadFormatConverter implements ITypeConverter<CppPayloadFormat> {
+    @Override
+    public CppPayloadFormat convert(String value) {
+      for (CppPayloadFormat format : CppPayloadFormat.values()) {
+        if (format.toString().equals(value) || format.name().equalsIgnoreCase(value)) {
+          return format;
+        }
+      }
+      throw new IllegalArgumentException(
+          "expected one of: byte-list, string-literal-wrapper");
     }
   }
 

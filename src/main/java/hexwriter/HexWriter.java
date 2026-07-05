@@ -22,11 +22,26 @@ public class HexWriter extends PayloadWriter {
     newLine();
   }
 
+  public void beginStatic(String tableName, int payloadSize) throws IOException {
+    beginStatic(tableName);
+  }
+
+  public void beginStatic(String tableName, String sizeExpr) throws IOException {
+    beginStatic(tableName);
+  }
+
   public void beginExtern(String tableName) throws IOException {
     writer.write("extern const uint8_t ");
     writer.write(tableName);
-    writer.write("[] PROGMEM = {");
-    newLine();
+    writer.write("[] PROGMEM;");
+  }
+
+  public void beginExtern(String tableName, int payloadSize) throws IOException {
+    beginExtern(tableName);
+  }
+
+  public void beginExtern(String tableName, String sizeExpr) throws IOException {
+    beginExtern(tableName);
   }
 
   public void printComment(String comment) throws IOException {
@@ -49,7 +64,7 @@ public class HexWriter extends PayloadWriter {
     if (inline)
       writer.write(" ");
     writer.write("0x");
-    printHexChar(writer, val >>> 4);
+    printHexChar(writer, (val >>> 4) & 0xF);
     printHexChar(writer, val & 0xF);
     writer.write(",");
     inline = true;

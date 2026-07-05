@@ -16,7 +16,20 @@ public abstract class PayloadWriter {
   public void writeDeclaration(String var) throws IOException {}
 
   public void beginStatic(String tableName) throws IOException {}
+  public void beginStatic(String tableName, int size) throws IOException {
+    beginStatic(tableName, String.valueOf(size));
+  }
+  public void beginStatic(String tableName, String sizeExpr) throws IOException {
+    beginStatic(tableName);
+  }
+
   public void beginExtern(String tableName) throws IOException {}
+  public void beginExtern(String tableName, int size) throws IOException {
+    beginExtern(tableName, String.valueOf(size));
+  }
+  public void beginExtern(String tableName, String sizeExpr) throws IOException {
+    beginExtern(tableName);
+  }
 
   public void printComment(String comment) throws IOException {}
 

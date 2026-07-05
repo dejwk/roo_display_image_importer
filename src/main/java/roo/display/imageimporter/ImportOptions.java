@@ -50,9 +50,26 @@ public class ImportOptions {
     }
   }
 
+  public enum CppPayloadFormat {
+    BYTE_LIST("byte-list"),
+    STRING_LITERAL_WRAPPER("string-literal-wrapper");
+
+    private final String optionName;
+
+    private CppPayloadFormat(String optionName) {
+      this.optionName = optionName;
+    }
+
+    @Override
+    public String toString() {
+      return optionName;
+    }
+  }
+
   private Storage storage;
   private Encoding encoding;
   private Compression compression;
+  private CppPayloadFormat cppPayloadFormat;
   // private String name;
   // private String resourceName;
   private File outputHeaderDirectory;
@@ -66,6 +83,7 @@ public class ImportOptions {
     storage = Storage.PROGMEM;
     encoding = Encoding.RGB565;
     compression = Compression.NONE;
+    cppPayloadFormat = CppPayloadFormat.BYTE_LIST;
   }
 
   public Storage getStorage() {
@@ -78,6 +96,10 @@ public class ImportOptions {
 
   public Compression getCompression() {
     return compression;
+  }
+
+  public CppPayloadFormat getCppPayloadFormat() {
+    return cppPayloadFormat;
   }
 
   public boolean getAutoCrop() {
@@ -120,6 +142,11 @@ public class ImportOptions {
 
   public ImportOptions setCompression(Compression compression) {
     this.compression = compression;
+    return this;
+  }
+
+  public ImportOptions setCppPayloadFormat(CppPayloadFormat cppPayloadFormat) {
+    this.cppPayloadFormat = cppPayloadFormat;
     return this;
   }
 
