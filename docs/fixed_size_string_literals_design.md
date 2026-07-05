@@ -83,25 +83,28 @@ payload byte is expected.
 
 ## Requirements
 
-- The array declaration must specify the exact payload size.
+- The generated payload declaration must specify the exact payload size.
 - The generated string literal must contain all payload bytes in order.
-- The generated array must not include the string literal's implicit trailing
-  NUL byte as payload data.
+- The stored payload bytes must not include the string literal's implicit
+  trailing NUL byte.
 - The emitted C++ must compile on Arduino-oriented toolchains supported by the
   importer.
 - The representation must work for payload bytes including `0x00`, `0x22`,
   `0x5C`, and bytes outside printable ASCII.
 - The representation must preserve existing storage mode annotations.
-- The generator should replace the existing C++ payload array emitter directly;
-  no parallel byte-list mode is required for this change.
-- The emitter must know the exact payload byte count before writing the array
+- The generator should add the new C++ payload format behind an explicit
+  command-line flag while keeping the current byte-list output as the default
+  until representative embedded toolchains are validated.
+- The emitter must know the exact payload byte count before writing the payload
   declaration. Callers that currently stream bytes without a known final size
   must buffer the payload first or pass an explicit size to the writer.
 
 ## Design Overview
 
-For payload arrays, generate a fixed-size character string initializer instead
-of a braced byte list.
+For C++ payload arrays, generate an exact-size payload wrapper initialized from
+fixed-size string literals instead of a braced byte list. The string literal is
+used as a compact source representation; the stored payload remains exactly the
+payload byte sequence.
 
 Current output:
 
@@ -114,13 +117,57 @@ static const unsigned char image_data[] PROGMEM = {
 Proposed output:
 
 ```cpp
-static const unsigned char image_data[7] PROGMEM =
+template <size_t N>
+struct GeneratedPayload {
+  uint8_t bytes[N];
+
+  constexpr GeneratedPayload(const char (&literal)[N + 1]) : bytes{} {
+    for (size_t i = 0; i < N; ++i) {
+      bytes[i] = static_cast<uint8_t>(literal[i]);
+    }
+  }
+};
+
+static constexpr GeneratedPayload<7> image_data PROGMEM(
+    "\x00\x01\x02\x41\x5C\x22\xFF");
+```
+
+The explicit `<7>` is essential. It is the payload byte count and determines
+the size of `image_data.bytes`. The string literal itself still has the usual
+implicit terminating NUL, but that terminator is consumed only by the
+constructor parameter type and is not stored in the payload member.
+
+Generated accessors keep the same public API, but pass the wrapper's byte
+member to `roo_display`:
+
+```cpp
+static RleImage4bppxBiased<Alpha4, ProgMemPtr> value(
+    Box(0, 4, 23, 19), Box(0, 0, 23, 23),
+    image_data.bytes, Alpha4(color::Black));
+```
+
+The simpler direct array form is valid only if the generated C++ reserves one
+extra byte for the literal terminator:
+
+```cpp
+static const uint8_t image_data[8] PROGMEM =
     "\x00\x01\x02\x41\x5C\x22\xFF";
 ```
 
-The explicit `[7]` is essential. Without an explicit bound, C and C++ include
-the implicit terminating NUL in the array size. With an explicit bound equal to
-the payload length, the initialized array contains exactly the payload bytes.
+That form is easy to emit and should compile quickly, but it grows flash usage
+by one byte per payload. It is therefore a fallback or measurement variant, not
+the leading option.
+
+The new wrapper output should initially be opt-in via a command-line flag, for
+example:
+
+```text
+--cpp-payload-format=string-literal-wrapper
+```
+
+The default should remain the current byte-list format until the wrapper output
+has been validated on the intended embedded platforms, including ESP32 and
+Raspberry Pi Pico builds.
 
 ## Design Details
 
@@ -138,13 +185,14 @@ That form does not require the writer to know the final byte count when it
 writes the declaration. The fixed-size string literal form does:
 
 ```cpp
-static const uint8_t image_data[3] PROGMEM = "\x00\x01\x02";
+static constexpr GeneratedPayload<3> image_data PROGMEM(
+    "\x00\x01\x02");
 ```
 
 This matters because `hexwriter.HexWriter` currently exposes streaming-style
 methods such as `beginStatic(tableName)`, `printHex8(...)`, and
 `printBuffer(...)`. The byte count is tracked after bytes are written, but the
-array declaration is emitted before the bytes.
+payload declaration is emitted before the bytes.
 
 For image imports in this repository, this is not a blocker: `Core.write()`
 already encodes the image into a `ByteArrayOutputStream` and passes the final
@@ -207,8 +255,10 @@ void beginStatic(String tableName, String sizeExpr)
 which emits:
 
 ```cpp
-static const uint8_t tableName[sizeExpr] PROGMEM =
+static constexpr GeneratedPayload<sizeExpr> tableName PROGMEM(
 ```
+
+and later closes the constructor argument with `);`.
 
 Then `FontEncoder` can call:
 
@@ -227,7 +277,7 @@ already buffers the entire generated C++ declaration in a `StringWriter` and
 already performs placeholder substitution after `totalBytes` is known.
 
 Alternative option: precompute the total font payload size before writing the
-array declaration. The required inputs are already available after glyph
+payload declaration. The required inputs are already available after glyph
 encoding:
 
 - `charsetBytes`: 1 for ASCII, 2 for UTF-8,
@@ -272,26 +322,39 @@ comments can appear before it or after it:
 ```
 
 Adjacent string literals separated by whitespace and comments are still
-concatenated by C++, so the generated font payload remains one array
-initializer. The writer must not leave an unterminated string literal open when
+concatenated by C++, so the generated font payload remains one constructor
+argument. The writer must not leave an unterminated string literal open when
 `printComment(...)` is called.
 
-### Array Type
+### Payload Wrapper And Array Type
 
-Keep the existing generated element type unless there is a strong reason to
-change it:
+The private generated symbol changes from a raw array to a small payload object.
+Keep the object's byte member in the same byte element type unless there is a
+strong reason to change it:
 
 ```cpp
-static const unsigned char name_data[kSize] PROGMEM = "...";
+template <size_t N>
+struct GeneratedPayload {
+  uint8_t bytes[N];
+  constexpr GeneratedPayload(const char (&literal)[N + 1]) : bytes{} { ... }
+};
+
+static constexpr GeneratedPayload<kSize> name_data PROGMEM("...");
 ```
 
-`unsigned char` preserves the current pointer behavior and avoids signedness
-surprises in downstream code. The string literal initializer is accepted for
-character arrays, including `unsigned char` arrays, by the intended C++ usage.
+`uint8_t` or `unsigned char` preserves the current byte-pointer behavior and
+avoids signedness surprises in downstream code. Downstream image and font
+constructors receive `name_data.bytes`, so public generated accessor signatures
+remain unchanged even though the private payload symbol is now an object.
 
-The implementation should keep `unsigned char` and validate the generated
-output manually on the intended toolchain before committing the generator
-change.
+The implementation should validate that the wrapper object is placed in the
+intended storage section and that the compiler does not retain the constructor
+source literal as a separate payload copy.
+
+The loop-bodied `constexpr` constructor shown above requires C++14 or newer. If
+a supported target still requires C++11, use a C++11-compatible generated helper
+or keep the old braced byte-list output for that target until the helper is
+validated there.
 
 ### Escaping Strategy
 
@@ -310,7 +373,7 @@ whitespace outside the literal; none of those can extend the previous escape.
 Therefore this is safe and is the recommended output:
 
 ```cpp
-static const unsigned char data[3] PROGMEM = "\x00\xFF\xBA";
+static constexpr GeneratedPayload<3> data PROGMEM("\x00\xFF\xBA");
 ```
 
 Splitting is only needed for a future mixed raw/escaped readability mode. The
@@ -356,17 +419,17 @@ that line.
 Example:
 
 ```cpp
-static const unsigned char image_data[24] PROGMEM =
+static constexpr GeneratedPayload<24> image_data PROGMEM(
     "\x00\x01\x02\x03\x04\x05\x06\x07"
     "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
-    "\x10\x11\x12\x13\x14\x15\x16\x17";
+    "\x10\x11\x12\x13\x14\x15\x16\x17");
 ```
 
 Recommended behavior:
 
 - keep the current target number of source characters per generated line,
 - keep the current continuation indentation style where possible,
-- semicolon only on the final line.
+- close the wrapper constructor only after the final literal line.
 
 This is much smaller than the current braced initializer because each byte is
 represented by four source characters and the compiler sees one string literal
@@ -376,16 +439,17 @@ selected as an additional compact mode.
 
 ### Empty Payloads
 
-Empty payload arrays should be generated explicitly:
+Empty payloads should be generated explicitly:
 
 ```cpp
-static const unsigned char image_data[0] PROGMEM = "";
+static constexpr GeneratedPayload<0> image_data PROGMEM("");
 ```
 
-If a target compiler rejects zero-length arrays, keep the current behavior for
-empty payloads or emit a one-byte placeholder and make the associated metadata
-carry size zero. Existing importer outputs are not expected to rely on empty
-image payloads, so this is primarily a defensive rule.
+If a target compiler rejects zero-length array members, specialize
+`GeneratedPayload<0>`, keep the current behavior for empty payloads, or emit a
+one-byte placeholder and make the associated metadata carry size zero. Existing
+importer outputs are not expected to rely on empty image payloads, so this is
+primarily a defensive rule.
 
 ### Storage Modes
 
@@ -393,7 +457,7 @@ For `PROGMEM`, keep the annotation in the same syntactic position used by the
 current generator:
 
 ```cpp
-static const unsigned char image_data[kSize] PROGMEM = "...";
+static constexpr GeneratedPayload<kSize> image_data PROGMEM("...");
 ```
 
 For non-C++ payload storage modes such as generated SPIFFS data files, this
@@ -402,18 +466,18 @@ design does not apply unless those modes also emit C/C++ array literals.
 ### Generated Metadata
 
 When the generator already knows the payload length, emit that length both as
-the array bound and, where useful, as a named constant:
+the wrapper size and, where useful, as a named constant:
 
 ```cpp
 static constexpr size_t image_data_size = 74;
-static const unsigned char image_data[image_data_size] PROGMEM = "...";
+static constexpr GeneratedPayload<image_data_size> image_data PROGMEM("...");
 ```
 
 The named constant makes generated code easier to validate and can support
-future descriptor-based APIs. The simpler direct bound is also acceptable:
+future descriptor-based APIs. The simpler inline size is also acceptable:
 
 ```cpp
-static const unsigned char image_data[74] PROGMEM = "...";
+static constexpr GeneratedPayload<74> image_data PROGMEM("...");
 ```
 
 ## Compatibility
@@ -426,6 +490,11 @@ const ::roo_display::Pictogram& ic_filled_24_file_cloud();
 
 Only the private payload declaration changes. Existing user code should not
 observe a behavioral difference.
+
+During rollout, existing generated output should also remain unchanged unless
+the new command-line flag is supplied. This makes the change easy to benchmark
+and easy to disable for a target toolchain that does not accept or optimize the
+wrapper form as expected.
 
 Binary compatibility is not a goal for generated source artifacts. Source
 compatibility is the important property.
@@ -448,7 +517,7 @@ Recommended tests:
 For generated C++ tests, compile a small fixture that checks:
 
 ```cpp
-static_assert(sizeof(image_data) == kExpectedSize);
+static_assert(sizeof(image_data.bytes) == kExpectedSize);
 ```
 
 and verifies byte-for-byte equality against the original byte sequence on a
@@ -456,16 +525,30 @@ host build.
 
 ## Implementation Plan
 
-### Step 1: Replace the payload array emitter
+### Step 1: Add a C++ payload format option
 
-Change the existing C++ payload emitter to write fixed-size string literals
-instead of braced hexadecimal byte lists. Do not add a second long-term emitter
-mode unless a concrete toolchain issue is discovered.
+Add an importer option for generated C++ payload format, for example:
 
-### Step 2: Make size availability explicit
+```text
+--cpp-payload-format=byte-list|string-literal-wrapper
+```
+
+Represent it in `ImportOptions` with an enum such as `CppPayloadFormat`. The
+default should be `byte-list`, preserving current generated output unless the
+new flag is supplied. The option only affects C++ payload declarations such as
+`PROGMEM`; non-C++ storage modes such as SPIFFS data files remain unchanged.
+
+### Step 2: Add the conditional wrapper emitter
+
+Keep the existing braced byte-list emitter for `byte-list`. Add a new emitter
+for `string-literal-wrapper` that writes exact-size payload wrappers initialized
+from fixed-size string literals. Select the emitter from `ImportOptions` at the
+C++ definition writer call site.
+
+### Step 3: Make size availability explicit
 
 Update the writer call path so the fixed-size string-literal emitter receives
-the final payload length before writing the array declaration. For image
+the final payload length before writing the payload declaration. For image
 generation, use the already-buffered `encoded.length`.
 
 For font generation, update `roo_display_font_importer` after updating its
@@ -475,22 +558,36 @@ placeholder such as `@totalBytes@` to the writer and replacing it after
 font encoder's existing placeholder-substitution flow and avoids duplicating
 font table size formulas in production code.
 
-### Step 3: Add tests
+### Step 4: Update dependent generators behind matching flags
+
+After refreshing `roo_display_font_importer`'s
+`app/lib/roo_display_image_importer.jar`, update the font generation path to
+use the size-aware writer API. Keep font output on the current byte-list format
+by default, or add an analogous font-importer flag before enabling wrapper
+output there.
+
+### Step 5: Add tests
 
 Add host tests for escaping, array size, and byte preservation. Include the
 full `0x00` to `0xFF` byte range because it catches escape-boundary mistakes.
+Tests should cover both payload formats: default byte-list output for backward
+compatibility, and `string-literal-wrapper` output for the new representation.
 
-### Step 4: Regenerate representative outputs
+### Step 6: Regenerate representative outputs
 
-Regenerate representative importer outputs, including `ALPHA4` + `RLE`
-pictograms and at least one non-RLE raster image if that path emits C++ arrays.
-Regenerate at least one font with `roo_display_font_importer` after refreshing
-its `roo_display_image_importer.jar` dependency.
+Regenerate representative importer outputs with the new flag, including
+`ALPHA4` + `RLE` pictograms and at least one non-RLE raster image if that path
+emits C++ arrays. Regenerate at least one font with
+`roo_display_font_importer` after refreshing its `roo_display_image_importer.jar`
+dependency and enabling the matching format there.
 
-### Step 5: Manually validate before committing
+### Step 7: Manually validate before changing defaults
 
-Compile and inspect representative generated output on the intended Arduino
-toolchain before committing the generator change.
+Compile and inspect representative generated output on the intended embedded
+toolchains before making the wrapper format the default. At minimum, validate
+ESP32 and Raspberry Pi Pico builds, because they are important Arduino-oriented
+targets and may differ in C++ standard flags, `PROGMEM` handling, and linker
+behavior.
 
 Measure at least:
 
@@ -499,8 +596,10 @@ Measure at least:
 - incremental compile time after touching one generated source,
 - final firmware size.
 
-The expected firmware size change is neutral. The main expected benefit is
-compile-time reduction.
+The expected firmware size change for `string-literal-wrapper` is neutral. The
+main expected benefit is compile-time reduction. Keep the default as `byte-list`
+until the flagged output compiles cleanly and shows no retained duplicate
+literals or firmware-size growth on the target matrix.
 
 ## Risks and Mitigations
 
@@ -514,12 +613,22 @@ split string literals before raw hex digits that follow a hex escape.
 
 ### Toolchain Differences
 
-Risk: embedded C++ toolchains may differ in accepting string literal
-initializers for `unsigned char` arrays.
+Risk: embedded C++ toolchains may differ in accepting or optimizing the
+`constexpr` payload wrapper, especially in combination with `PROGMEM`. The
+simple loop-bodied helper requires C++14 or newer.
 
 Mitigation: validate the generated output manually on the intended toolchain
 before committing the generator change. If a concrete compiler rejects the
 form, handle that as a follow-up compatibility fix.
+
+### Retained Source Literal
+
+Risk: a compiler could retain the string literal used to initialize the wrapper
+as a separate object, which would increase firmware size.
+
+Mitigation: inspect representative map files or object dumps. The expected
+stored payload is only the wrapper's `bytes` member, with no retained terminator
+or duplicate literal.
 
 ### Debuggability
 
@@ -539,8 +648,12 @@ safe to place in the same literal and split before ambiguous escapes.
 
 ## Acceptance Criteria
 
-- Generated payload arrays have explicit bounds equal to the payload size.
+- Generated payload wrappers have explicit sizes equal to the payload size.
 - Generated fixed-size string literals preserve payload bytes exactly.
+- Stored payload bytes exclude the string literal's implicit terminator.
+- Default generation without the new flag preserves the current byte-list
+  output.
+- The new command-line flag enables wrapper output for generated C++ payloads.
 - Existing generated accessors compile unchanged against `roo_display`.
 - The implementation does not rely on `PayloadWriter.getBytesWritten()` after
   the declaration has already been emitted; the declaration receives the final
@@ -548,10 +661,11 @@ safe to place in the same literal and split before ambiguous escapes.
   count before writing the generated file.
 - `roo_display_font_importer` is updated to use the new size-aware writer API
   after refreshing its `roo_display_image_importer.jar` dependency.
-- Generated font arrays use explicit bounds matching `FontEncoder`'s
+- Generated font payload wrappers use explicit sizes matching `FontEncoder`'s
   `totalBytes`.
 - Host tests cover embedded NULs, quotes, backslashes, all byte values, and
   trailing NUL payload bytes.
-- Supported Arduino toolchains compile representative generated output.
+- Supported Arduino toolchains compile representative generated output,
+  including ESP32 and Raspberry Pi Pico when the new flag is enabled.
 - A large generated library such as `roo_icons` shows lower generated source
   size and improved clean compile time, with no intended firmware-size growth.
